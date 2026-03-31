@@ -1,0 +1,10 @@
+{
+  "name": "pimpit-root",
+  "private": true,
+  "scripts": {
+    "dev": "cd pimpit-web && npm run dev",
+    "build": "cd pimpit-web && npm run build",
+    "start": "cd pimpit-web && npm run start",
+    "install:all": "cd pimpit-etl && npm install && cd ../pimpit-web && npm install"
+  }
+}
