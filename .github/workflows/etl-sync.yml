@@ -21,6 +21,30 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "❌ SUPABASE_URL is not set in GitHub Secrets"
+            missing=1
+          else
+            echo "✅ SUPABASE_URL is set"
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "❌ SUPABASE_SERVICE_ROLE_KEY is not set in GitHub Secrets"
+            missing=1
+          else
+            echo "✅ SUPABASE_SERVICE_ROLE_KEY is set"
+          fi
+          if [ $missing -eq 1 ]; then
+            echo ""
+            echo "Go to: GitHub → Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Install dependencies
         run: npm install
 
