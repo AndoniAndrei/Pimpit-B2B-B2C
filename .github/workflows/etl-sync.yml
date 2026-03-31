@@ -27,9 +27,18 @@ jobs:
         run: npm install
 
       - name: Run ETL Sync
-        run: npm run sync
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "Error: SUPABASE_URL is empty. Please check your GitHub Secrets."
+            exit 1
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Error: SUPABASE_SERVICE_ROLE_KEY is empty. Please check your GitHub Secrets."
+            exit 1
+          fi
+          npm run sync
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           WHEELTRADE_API_KEY: ${{ secrets.WHEELTRADE_API_KEY }}
           FELGEO_TOKEN: ${{ secrets.FELGEO_TOKEN }}
