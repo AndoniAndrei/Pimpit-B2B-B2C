@@ -51,12 +51,12 @@ jobs:
           fi
 
       - name: Run ETL Sync
-        run: |
-          export SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
-          export SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-          export WHEELTRADE_API_KEY="${{ secrets.WHEELTRADE_API_KEY }}"
-          export FELGEO_TOKEN="${{ secrets.FELGEO_TOKEN }}"
-          export ABS_WHEELS_API_KEY="${{ secrets.ABS_WHEELS_API_KEY }}"
-          export STATUSFALGAR_CUSTOMER_ID="${{ secrets.STATUSFALGAR_CUSTOMER_ID }}"
-          export STATUSFALGAR_TOKEN="${{ secrets.STATUSFALGAR_TOKEN }}"
-          npm run sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          WHEELTRADE_API_KEY: ${{ secrets.WHEELTRADE_API_KEY }}
+          FELGEO_TOKEN: ${{ secrets.FELGEO_TOKEN }}
+          ABS_WHEELS_API_KEY: ${{ secrets.ABS_WHEELS_API_KEY }}
+          STATUSFALGAR_CUSTOMER_ID: ${{ secrets.STATUSFALGAR_CUSTOMER_ID }}
+          STATUSFALGAR_TOKEN: ${{ secrets.STATUSFALGAR_TOKEN }}
+        run: npm run sync
