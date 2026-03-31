@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createBrowserClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import PriceDisplay from '@/components/catalog/PriceDisplay'
@@ -6,7 +7,11 @@ import PriceDisplay from '@/components/catalog/PriceDisplay'
 export const revalidate = 3600 // ISR 1 hour
 
 export async function generateStaticParams() {
-  const supabase = createClient()
+  // Use a standard client without cookies for build-time static generation
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
   const { data } = await supabase
     .from('products')
     .select('slug')
