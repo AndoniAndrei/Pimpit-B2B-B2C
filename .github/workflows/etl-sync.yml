@@ -24,32 +24,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create .env file
-        run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
-          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
-          echo "WHEELTRADE_API_KEY=${{ secrets.WHEELTRADE_API_KEY }}" >> .env
-          echo "FELGEO_TOKEN=${{ secrets.FELGEO_TOKEN }}" >> .env
-          echo "ABS_WHEELS_API_KEY=${{ secrets.ABS_WHEELS_API_KEY }}" >> .env
-          echo "STATUSFALGAR_CUSTOMER_ID=${{ secrets.STATUSFALGAR_CUSTOMER_ID }}" >> .env
-          echo "STATUSFALGAR_TOKEN=${{ secrets.STATUSFALGAR_TOKEN }}" >> .env
-
-      - name: Verify Secrets
-        run: |
-          if grep -q "^SUPABASE_URL=$" .env; then
-            echo "❌ EROARE: SUPABASE_URL este gol! GitHub nu a putut citi secretul."
-            exit 1
-          else
-            echo "✅ SUPABASE_URL a fost citit cu succes."
-          fi
-          
-          if grep -q "^SUPABASE_SERVICE_ROLE_KEY=$" .env; then
-            echo "❌ EROARE: SUPABASE_SERVICE_ROLE_KEY este gol!"
-            exit 1
-          else
-            echo "✅ SUPABASE_SERVICE_ROLE_KEY a fost citit cu succes."
-          fi
-
       - name: Run ETL Sync
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -60,3 +34,11 @@ jobs:
           STATUSFALGAR_CUSTOMER_ID: ${{ secrets.STATUSFALGAR_CUSTOMER_ID }}
           STATUSFALGAR_TOKEN: ${{ secrets.STATUSFALGAR_TOKEN }}
         run: npm run sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          WHEELTRADE_API_KEY: ${{ secrets.WHEELTRADE_API_KEY }}
+          FELGEO_TOKEN: ${{ secrets.FELGEO_TOKEN }}
+          ABS_WHEELS_API_KEY: ${{ secrets.ABS_WHEELS_API_KEY }}
+          STATUSFALGAR_CUSTOMER_ID: ${{ secrets.STATUSFALGAR_CUSTOMER_ID }}
+          STATUSFALGAR_TOKEN: ${{ secrets.STATUSFALGAR_TOKEN }}
