@@ -215,8 +215,13 @@ export async function syncAllSuppliers() {
     }
   }
 
-  console.log(`Fetched ${allProducts.length} total products.`);
-  
+  console.log(`Fetched ${allProducts.length} total products from ${suppliers.length} suppliers.`);
+
+  const failedCount = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.length === 0)).length;
+  if (failedCount > 0) {
+    console.warn(`⚠️  ${failedCount}/${suppliers.length} suppliers returned 0 products.`);
+  }
+
   const deduplicated = deduplicateProducts(allProducts);
   console.log(`Deduplicated to ${deduplicated.length} products.`);
 
@@ -226,8 +231,9 @@ export async function syncAllSuppliers() {
     await upsertProducts(deduplicated);
     await markInactiveProducts();
     await refreshFilterOptions();
-    console.log(`Global sync completed in ${Date.now() - start}ms.`);
+    console.log(`✅ Global sync completed in ${Date.now() - start}ms. Products upserted: ${deduplicated.length}`);
   } catch (e: any) {
-    console.error('Global sync failed at safety/upsert stage:', e);
+    console.error('❌ Global sync failed at safety/upsert stage:', e.message);
+    process.exit(1);
   }
 }
