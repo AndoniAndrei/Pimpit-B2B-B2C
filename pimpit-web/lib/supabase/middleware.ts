@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 30, // 30 days
     })
   }
+  
 
   // Protect routes
   if (request.nextUrl.pathname.startsWith('/admin')) {
