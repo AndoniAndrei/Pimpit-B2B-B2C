@@ -24,8 +24,7 @@ export default function LoginPage() {
       setLoading(false)
     } else {
       const { data: profile } = await supabase.from('users').select('role').eq('id', data.user.id).single()
-      router.refresh()
-      router.push(profile?.role === 'admin' ? '/admin' : '/cont')
+      window.location.href = profile?.role === 'admin' ? '/admin' : '/cont'
     }
   }
 
