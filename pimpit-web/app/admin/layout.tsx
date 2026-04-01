@@ -17,9 +17,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <h2 className="font-bold text-lg mb-6">Admin Panel</h2>
         <nav className="space-y-2">
           <Link href="/admin" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Dashboard</Link>
-          <Link href="/admin/importuri" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Importuri produse</Link>
+          <Link href="/admin/produse" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Produse</Link>
+          <Link href="/admin/importuri" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Importuri</Link>
           <Link href="/admin/furnizori" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Furnizori</Link>
-          <Link href="/admin/sincronizari" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Sincronizări ETL</Link>
+          <Link href="/admin/sincronizari" className="block px-4 py-2 rounded-md hover:bg-muted font-medium">Sincronizări</Link>
         </nav>
       </aside>
       <main className="flex-1 p-8">
