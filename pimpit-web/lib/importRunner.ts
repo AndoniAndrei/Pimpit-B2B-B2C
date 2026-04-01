@@ -186,7 +186,7 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
   }
 
   // Refresh filter options
-  await supabase.rpc('refresh_filter_options').catch(() => {});
+  try { await supabase.rpc('refresh_filter_options'); } catch { /* non-critical */ }
 
   // Log sync result
   await supabase.from('sync_logs').insert({
