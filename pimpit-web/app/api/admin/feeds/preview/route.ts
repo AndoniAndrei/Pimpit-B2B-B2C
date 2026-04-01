@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Papa from 'papaparse';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Auth check
+  const anonClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  );
+  const { data: { user } } = await anonClient.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+
+  const adminClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+  const { data: profile } = await adminClient.from('users').select('role').eq('id', user.id).single();
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { url, format, delimiter, auth_method, api_key, token, customer_id } = body;
+  const { feed_url, url: urlAlt, format, delimiter, auth_method, api_key, token, customer_id } = body;
+  const url = feed_url || urlAlt;
 
   if (!url) return NextResponse.json({ error: 'URL-ul este obligatoriu' }, { status: 400 });
 
