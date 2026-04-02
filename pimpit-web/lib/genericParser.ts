@@ -1,6 +1,30 @@
 import { evaluateFormula } from './formulaEvaluator';
 import { parseSmartNumber } from './priceParser';
 
+/**
+ * Resolve a template string with {column_name} variable substitution.
+ * Supports plain column names (select from dropdown) OR templates like:
+ *   "{diameter}\" {pcd} {brand} - {name}"
+ *   "{width}/{et_offset}"
+ * Returns trimmed result with collapsed spaces.
+ */
+export function resolveTemplate(template: string, row: Record<string, any>): string {
+  if (!template) return '';
+  // If template contains no braces, treat as a plain column name
+  if (!template.includes('{')) {
+    const val = row[template];
+    return val !== null && val !== undefined ? String(val).trim() : '';
+  }
+  // Replace all {column} tokens
+  const result = template.replace(/\{([^}]+)\}/g, (_m, col) => {
+    const val = row[col.trim()];
+    if (val === null || val === undefined) return '';
+    return String(val).trim();
+  });
+  // Collapse multiple spaces and trim
+  return result.replace(/\s{2,}/g, ' ').trim();
+}
+
 export interface ExtraFieldMapping {
   label: string;   // Name stored in custom_fields (e.g. "Culoare Specială")
   column: string;  // CSV column name
@@ -82,9 +106,16 @@ export function parseRow(
   mappings: FieldMappings,
   supplierId: number
 ): ParsedProduct | null {
-  const partNumber = getStr(row, mappings.part_number);
-  const brand = getStr(row, mappings.brand);
-  const name = getStr(row, mappings.name);
+  // Support both plain column and template for text fields
+  const partNumber = mappings.part_number.includes('{')
+    ? resolveTemplate(mappings.part_number, row) || undefined
+    : getStr(row, mappings.part_number);
+  const brand = mappings.brand.includes('{')
+    ? resolveTemplate(mappings.brand, row) || undefined
+    : getStr(row, mappings.brand);
+  const name = mappings.name.includes('{')
+    ? resolveTemplate(mappings.name, row) || undefined
+    : getStr(row, mappings.name);
 
   if (!partNumber || !brand || !name) return null;
 
@@ -143,8 +174,8 @@ export function parseRow(
     etOffset: getNum(row, mappings.et_offset),
     centerBore: getNum(row, mappings.center_bore),
     images,
-    color: getStr(row, mappings.color),
-    finish: getStr(row, mappings.finish),
+    color: mappings.color?.includes('{') ? resolveTemplate(mappings.color, row) || undefined : getStr(row, mappings.color),
+    finish: mappings.finish?.includes('{') ? resolveTemplate(mappings.finish, row) || undefined : getStr(row, mappings.finish),
     productType,
     customFields,
     supplierId,

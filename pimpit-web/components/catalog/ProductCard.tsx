@@ -3,43 +3,99 @@ import Image from 'next/image'
 import { Product } from '@/lib/types'
 import PriceDisplay from './PriceDisplay'
 
-export default function ProductCard({ product, isB2B }: { product: Product, isB2B: boolean }) {
+function StockBadge({ stock, stockIncoming }: { stock: number; stockIncoming: number }) {
+  if (stock > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+        <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+        {stock} buc în stoc
+      </span>
+    );
+  }
+  if (stockIncoming > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+        <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+        {stockIncoming} buc la comandă
+      </span>
+    );
+  }
   return (
-    <Link href={`/jante/${product.slug}`} className="group flex flex-col border rounded-xl overflow-hidden hover:shadow-lg transition-all bg-card">
-      <div className="aspect-square relative bg-muted p-4">
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+      Stoc epuizat
+    </span>
+  );
+}
+
+export default function ProductCard({ product, isB2B }: { product: Product; isB2B: boolean }) {
+  const specs = [
+    product.diameter && `Ø${product.diameter}"`,
+    product.width && `${product.width}J`,
+    product.pcd,
+    product.et_offset !== null && product.et_offset !== undefined && `ET${product.et_offset}`,
+    product.center_bore && `CB${product.center_bore}`,
+  ].filter(Boolean).join('  ·  ');
+
+  return (
+    <Link href={`/jante/${product.slug}`}
+      className="group flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg hover:border-gray-300 transition-all duration-200">
+
+      {/* Image */}
+      <div className="relative bg-gray-50 aspect-square overflow-hidden">
         {product.images?.[0] ? (
-          <Image 
-            src={product.images[0]} 
-            alt={product.name} 
-            fill 
-            className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" 
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            fill
+            className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">Fără imagine</div>
-        )}
-        {product.stock === 0 && (
-          <div className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded">
-            Stoc epuizat
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 gap-2">
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-xs">Fără imagine</span>
           </div>
         )}
+        {product.color && (
+          <span className="absolute top-2 left-2 text-xs bg-white/90 border px-2 py-0.5 rounded-full text-gray-600 font-medium shadow-sm">
+            {product.color}
+          </span>
+        )}
       </div>
-      <div className="p-4 flex flex-col flex-1">
-        <div className="text-xs text-muted-foreground font-medium mb-1">{product.brand}</div>
-        <h3 className="font-semibold text-sm line-clamp-2 mb-2 flex-1">{product.name}</h3>
-        <div className="text-xs text-muted-foreground mb-3 space-x-2">
-          <span>{product.diameter}"</span>
-          <span>{product.pcd}</span>
-          <span>ET{product.et_offset}</span>
+
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1 gap-2">
+        <div className="text-xs font-bold text-primary tracking-wide uppercase">{product.brand}</div>
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">{product.name}</h3>
+
+        {/* Specs grid */}
+        {specs && (
+          <div className="text-xs text-gray-500 font-medium">{specs}</div>
+        )}
+
+        <div className="mt-auto pt-3 flex flex-col gap-2">
+          <StockBadge stock={product.stock ?? 0} stockIncoming={product.stock_incoming ?? 0} />
+          <PriceDisplay
+            price={product.price}
+            priceOld={product.price_old}
+            priceB2b={product.price_b2b}
+            isB2B={isB2B}
+            showBadge={true}
+          />
         </div>
-        <PriceDisplay 
-          price={product.price} 
-          priceOld={product.price_old} 
-          priceB2b={product.price_b2b} 
-          isB2B={isB2B} 
-          showBadge={true} 
-        />
+      </div>
+
+      {/* Add to cart bar — visible on hover */}
+      <div className="px-4 pb-4">
+        <div className="w-full bg-primary text-primary-foreground text-sm font-semibold py-2.5 rounded-xl text-center
+          opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200
+          disabled:opacity-40 cursor-pointer select-none">
+          {product.stock === 0 ? 'Indisponibil' : 'Adaugă în coș'}
+        </div>
       </div>
     </Link>
-  )
+  );
 }

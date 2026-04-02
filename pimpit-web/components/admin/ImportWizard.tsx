@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { evaluateFormula, validateFormula, extractFormulaVariables } from '@/lib/formulaEvaluator';
 import { parseSmartNumber, detectPriceAmbiguity, formatPrice } from '@/lib/priceParser';
+import { resolveTemplate } from '@/lib/genericParser';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,24 +40,36 @@ const EMPTY_MAPPINGS: FieldMappings = {
   color: '', finish: '', extra_fields: [],
 };
 
-const STANDARD_FIELDS: { key: keyof Omit<FieldMappings, 'extra_fields'>; label: string; required: boolean; hint?: string }[] = [
-  { key: 'part_number', label: 'Cod produs (SKU)', required: true },
-  { key: 'brand',       label: 'Brand / Marcă',    required: true },
-  { key: 'name',        label: 'Denumire produs',  required: true },
-  { key: 'price_formula', label: 'Formula preț RON', required: true,
+// fieldType: 'template' = free text + {col} substitution, 'formula' = math formula, 'select' = single column dropdown, 'image' = URL column
+const STANDARD_FIELDS: {
+  key: keyof Omit<FieldMappings, 'extra_fields'>;
+  label: string;
+  required: boolean;
+  fieldType: 'template' | 'formula' | 'select' | 'image';
+  hint?: string;
+}[] = [
+  { key: 'part_number',   label: 'Cod produs (SKU)',    required: true,  fieldType: 'template',
+    hint: 'Selectează o coloană sau combină: {SKU}-{Variant}' },
+  { key: 'brand',         label: 'Brand / Marcă',       required: true,  fieldType: 'template',
+    hint: 'Ex: {Brand} sau text fix "Borbet"' },
+  { key: 'name',          label: 'Denumire produs',     required: true,  fieldType: 'template',
+    hint: 'Combină câmpuri: {Brand} {Diameter}" {Width}/{ET} {PCD}' },
+  { key: 'price_formula', label: 'Formula preț RON',    required: true,  fieldType: 'formula',
     hint: 'Ex: {Price_EUR} * 5 * 1.19  sau  {Pret} * 1.10 + 20' },
-  { key: 'stock',         label: 'Stoc disponibil',  required: false },
-  { key: 'stock_incoming',label: 'Stoc în tranzit',  required: false },
-  { key: 'diameter',      label: 'Diametru (inch)',   required: false },
-  { key: 'width',         label: 'Lățime',            required: false },
-  { key: 'pcd',           label: 'PCD',               required: false },
-  { key: 'et_offset',     label: 'ET / Offset',       required: false },
-  { key: 'center_bore',   label: 'Alezaj central',    required: false },
-  { key: 'images',        label: 'Imagine 1 (URL)',    required: false },
-  { key: 'images_2',      label: 'Imagine 2 (URL)',    required: false },
-  { key: 'images_3',      label: 'Imagine 3 (URL)',    required: false },
-  { key: 'color',         label: 'Culoare',            required: false },
-  { key: 'finish',        label: 'Finisaj',            required: false },
+  { key: 'stock',         label: 'Stoc disponibil',     required: false, fieldType: 'select' },
+  { key: 'stock_incoming',label: 'Stoc în tranzit',     required: false, fieldType: 'select' },
+  { key: 'diameter',      label: 'Diametru (inch)',      required: false, fieldType: 'select' },
+  { key: 'width',         label: 'Lățime',              required: false, fieldType: 'select' },
+  { key: 'pcd',           label: 'PCD',                 required: false, fieldType: 'template',
+    hint: 'Ex: {PCD} sau {Boli}x{BCD}' },
+  { key: 'et_offset',     label: 'ET / Offset',         required: false, fieldType: 'select' },
+  { key: 'center_bore',   label: 'Alezaj central',      required: false, fieldType: 'select' },
+  { key: 'images',        label: 'Imagine 1 (URL)',      required: false, fieldType: 'image' },
+  { key: 'images_2',      label: 'Imagine 2 (URL)',      required: false, fieldType: 'image' },
+  { key: 'images_3',      label: 'Imagine 3 (URL)',      required: false, fieldType: 'image' },
+  { key: 'color',         label: 'Culoare',             required: false, fieldType: 'template',
+    hint: 'Ex: {Color} sau {Culoare} {Finisaj}' },
+  { key: 'finish',        label: 'Finisaj',             required: false, fieldType: 'template' },
 ];
 
 interface Props {
@@ -84,10 +97,39 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState<any>(null);
   const [savedId, setSavedId] = useState<number | undefined>(supplierId);
+  // Track which template field's column picker is open
+  const [openPickerFor, setOpenPickerFor] = useState<string | null>(null);
+  // Refs for template inputs (to insert text at cursor)
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Formula live validation
   const formulaValidation = mappings.price_formula
     ? validateFormula(mappings.price_formula) : null;
+
+  // Insert {column} token at cursor position in a template input
+  function insertToken(fieldKey: string, col: string) {
+    const input = inputRefs.current[fieldKey];
+    const token = `{${col}}`;
+    if (input) {
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      const newVal = input.value.slice(0, start) + token + input.value.slice(end);
+      setMappings(m => ({ ...m, [fieldKey]: newVal }));
+      // Restore focus + cursor after state update
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + token.length, start + token.length);
+      }, 0);
+    } else {
+      setMappings(m => ({ ...m, [fieldKey]: ((m as any)[fieldKey] || '') + token }));
+    }
+  }
+
+  // Preview value for a template field with first data row
+  function previewTemplate(template: string): string {
+    if (!template || !previewRows[0]) return '';
+    try { return resolveTemplate(template, previewRows[0]); } catch { return ''; }
+  }
 
   // ── Step 1: fetch preview ─────────────────────────────────────────────────
 
@@ -398,68 +440,114 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
             </div>
 
             <div className="space-y-4">
-              {STANDARD_FIELDS.map(field => (
-                <div key={field.key} className="grid grid-cols-[200px_1fr] gap-4 items-start">
-                  <div className="pt-2">
-                    <span className="text-sm font-medium">
-                      {field.label}
-                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                    </span>
-                    {field.hint && <p className="text-xs text-muted-foreground mt-0.5">{field.hint}</p>}
-                  </div>
-
-                  {field.key === 'price_formula' ? (
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <input
-                          className={`w-full border rounded-lg px-3 py-2.5 text-sm bg-background font-mono pr-8
-                            ${formulaValidation && !formulaValidation.valid ? 'border-red-400 bg-red-50' :
-                              formulaValidation?.valid ? 'border-green-400' : ''}`}
-                          placeholder="{Price_EUR} * 5 * 1.19 + 20"
-                          value={mappings.price_formula}
-                          onChange={e => setMappings(m => ({ ...m, price_formula: e.target.value }))}
-                        />
-                        {formulaValidation && (
-                          <span className="absolute right-2 top-2.5 text-sm">
-                            {formulaValidation.valid ? '✓' : '✗'}
-                          </span>
-                        )}
-                      </div>
-                      {formulaValidation && !formulaValidation.valid && (
-                        <p className="text-xs text-red-600">{formulaValidation.error}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Click pe o coloană pentru a o insera în formulă:
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {columns.map(col => (
-                          <button key={col} type="button"
-                            className="text-xs bg-muted hover:bg-primary/10 hover:text-primary border px-2 py-1 rounded-md font-mono transition-colors"
-                            onClick={() => setMappings(m => ({ ...m, price_formula: m.price_formula + `{${col}}` }))}>
-                            {col}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Live price preview */}
-                      {formulaValidation?.valid && previewRows[0] && (() => {
-                        const { price, warning } = calcPrice(previewRows[0]);
-                        return (
-                          <div className={`text-xs px-3 py-2 rounded-lg ${warning ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' : 'bg-green-50 text-green-800 border border-green-200'}`}>
-                            {warning ? `⚠ ${warning}` : `✓ Exemplu preț calculat: ${price}`}
-                          </div>
-                        );
-                      })()}
+              {STANDARD_FIELDS.map(field => {
+                const currentVal = (mappings as any)[field.key] || '';
+                return (
+                  <div key={field.key} className="grid grid-cols-[200px_1fr] gap-4 items-start">
+                    <div className="pt-2">
+                      <span className="text-sm font-medium">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </span>
+                      {field.hint && <p className="text-xs text-muted-foreground mt-0.5">{field.hint}</p>}
                     </div>
-                  ) : (
-                    <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
-                      value={(mappings as any)[field.key] || ''}
-                      onChange={e => setMappings(m => ({ ...m, [field.key]: e.target.value }))}>
-                      <option value="">— nu mapa —</option>
-                      {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                    </select>
-                  )}
-                </div>
-              ))}
+
+                    {/* ── FORMULA field ── */}
+                    {field.fieldType === 'formula' && (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input
+                            ref={el => { inputRefs.current[field.key] = el; }}
+                            className={`w-full border rounded-lg px-3 py-2.5 text-sm bg-background font-mono pr-8
+                              ${formulaValidation && !formulaValidation.valid ? 'border-red-400 bg-red-50' :
+                                formulaValidation?.valid ? 'border-green-400' : ''}`}
+                            placeholder="{Price_EUR} * 5 * 1.19 + 20"
+                            value={mappings.price_formula}
+                            onChange={e => setMappings(m => ({ ...m, price_formula: e.target.value }))}
+                          />
+                          {formulaValidation && (
+                            <span className="absolute right-2 top-2.5 text-sm">
+                              {formulaValidation.valid ? '✓' : '✗'}
+                            </span>
+                          )}
+                        </div>
+                        {formulaValidation && !formulaValidation.valid && (
+                          <p className="text-xs text-red-600">{formulaValidation.error}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Click pe o coloană pentru a o insera:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {columns.map(col => (
+                            <button key={col} type="button"
+                              className="text-xs bg-muted hover:bg-primary/10 hover:text-primary border px-2 py-1 rounded-md font-mono transition-colors"
+                              onClick={() => insertToken('price_formula', col)}>
+                              {col}
+                            </button>
+                          ))}
+                        </div>
+                        {formulaValidation?.valid && previewRows[0] && (() => {
+                          const { price, warning } = calcPrice(previewRows[0]);
+                          return (
+                            <div className={`text-xs px-3 py-2 rounded-lg ${warning ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' : 'bg-green-50 text-green-800 border border-green-200'}`}>
+                              {warning ? `⚠ ${warning}` : `✓ Exemplu preț calculat: ${price}`}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* ── TEMPLATE field (text + {col} substitution) ── */}
+                    {field.fieldType === 'template' && (
+                      <div className="space-y-1.5">
+                        <div className="flex gap-2">
+                          <input
+                            ref={el => { inputRefs.current[field.key] = el; }}
+                            className="flex-1 border rounded-lg px-3 py-2.5 text-sm bg-background font-mono"
+                            placeholder={field.hint || `{Coloana} sau text fix`}
+                            value={currentVal}
+                            onChange={e => setMappings(m => ({ ...m, [field.key]: e.target.value }))}
+                            onFocus={() => setOpenPickerFor(field.key)}
+                          />
+                          <button type="button"
+                            onClick={() => setOpenPickerFor(openPickerFor === field.key ? null : field.key)}
+                            className="px-3 py-2 text-xs border rounded-lg bg-muted hover:bg-primary/10 hover:text-primary font-medium whitespace-nowrap">
+                            + Coloană
+                          </button>
+                        </div>
+                        {openPickerFor === field.key && (
+                          <div className="flex flex-wrap gap-1.5 p-3 bg-muted/50 rounded-lg border">
+                            {columns.map(col => (
+                              <button key={col} type="button"
+                                className="text-xs bg-white hover:bg-primary hover:text-primary-foreground border px-2 py-1 rounded-md font-mono transition-colors"
+                                onClick={() => { insertToken(field.key, col); setOpenPickerFor(null); }}>
+                                {col}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* Live preview */}
+                        {currentVal && previewRows[0] && (() => {
+                          const preview = previewTemplate(currentVal);
+                          return preview ? (
+                            <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+                              ✓ Preview: <strong>{preview}</strong>
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+
+                    {/* ── SELECT / IMAGE field ── */}
+                    {(field.fieldType === 'select' || field.fieldType === 'image') && (
+                      <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                        value={currentVal}
+                        onChange={e => setMappings(m => ({ ...m, [field.key]: e.target.value }))}>
+                        <option value="">— nu mapa —</option>
+                        {columns.map(col => <option key={col} value={col}>{col}</option>)}
+                      </select>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Extra / custom fields section */}

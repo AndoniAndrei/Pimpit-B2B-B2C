@@ -135,7 +135,7 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     .from('suppliers')
     .select('*')
     .eq('id', supplierId)
-    .single();
+    .maybeSingle();
 
   if (supErr || !supplier) {
     throw new Error(`Furnizorul #${supplierId} nu a fost găsit`);

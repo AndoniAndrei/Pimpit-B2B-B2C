@@ -9,7 +9,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('filter_options')
     .select('*')
-    .single()
+    .maybeSingle()
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
