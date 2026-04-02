@@ -16,7 +16,7 @@ async function checkAdmin(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
   const db = makeAdminClient();
-  const { data: profile } = await db.from('users').select('role').eq('id', user.id).single();
+  const { data: profile } = await db.from('users').select('role').eq('id', user.id).maybeSingle();
   return profile?.role === 'admin';
 }
 

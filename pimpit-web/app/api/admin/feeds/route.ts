@@ -15,7 +15,7 @@ async function checkAdmin(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const db = makeAdminClient();
-  const { data: profile } = await db.from('users').select('role').eq('id', user.id).single();
+  const { data: profile } = await db.from('users').select('role').eq('id', user.id).maybeSingle();
   if (profile?.role !== 'admin') return null;
   return user.id;
 }
@@ -45,7 +45,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Câmpurile obligatorii lipsesc' }, { status: 400 });
   }
 
-  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+  const db = makeAdminClient();
+
+  // suppliers.id is SMALLINT with no sequence — must assign manually
+  const { data: maxRow } = await db
+    .from('suppliers')
+    .select('id')
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextId = ((maxRow?.id as number) || 0) + 1;
+
+  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
   const driver_config: Record<string, any> = {};
   if (field_mappings) driver_config.field_mappings = field_mappings;
   if (delimiter) driver_config.csv_delimiter = delimiter;
@@ -53,8 +64,8 @@ export async function POST(req: NextRequest) {
   if (token) driver_config.token = token;
   if (customer_id) driver_config.customer_id = customer_id;
 
-  const db = makeAdminClient();
   const { data, error } = await db.from('suppliers').insert({
+    id: nextId,
     name,
     slug,
     feed_url,
@@ -63,8 +74,9 @@ export async function POST(req: NextRequest) {
     csv_delimiter: delimiter || ',',
     driver_config,
     is_active: true,
-  }).select().single();
+  }).select().maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ error: 'Inserarea a eșuat — verifică constrângerile tabelului' }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
 }

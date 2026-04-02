@@ -17,7 +17,7 @@ async function checkAdmin(req: NextRequest) {
   )
   const { data: { user } } = await anonClient.auth.getUser()
   if (!user) return false
-  const { data } = await adminClient().from('users').select('role').eq('id', user.id).single()
+  const { data } = await adminClient().from('users').select('role').eq('id', user.id).maybeSingle()
   return data?.role === 'admin'
 }
 
