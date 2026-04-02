@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/server'
 import { evaluateFormula } from '@/lib/formulaEvaluator'
 
 function adminClient() {
@@ -10,7 +11,16 @@ function adminClient() {
   )
 }
 
+async function checkAdmin(): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  const { data } = await adminClient().from('users').select('role').eq('id', user.id).single()
+  return data?.role === 'admin'
+}
+
 export async function POST(req: NextRequest) {
+  if (!await checkAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { ids, action, value } = await req.json()
   if (!ids?.length || !action) return NextResponse.json({ error: 'ids și action sunt obligatorii' }, { status: 400 })
 

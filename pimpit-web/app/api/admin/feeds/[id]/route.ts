@@ -1,32 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@/lib/supabase/server';
 
-async function checkAdmin() {
+function makeAdminClient() {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+}
+
+async function checkAdmin(): Promise<boolean> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') return null;
-  return supabase;
+  if (!user) return false;
+  const db = makeAdminClient();
+  const { data: profile } = await db.from('users').select('role').eq('id', user.id).single();
+  return profile?.role === 'admin';
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = await checkAdmin();
-  if (!supabase) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await checkAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { data, error } = await supabase.from('suppliers').select('*').eq('id', params.id).single();
+  const db = makeAdminClient();
+  const { data, error } = await db.from('suppliers').select('*').eq('id', params.id).single();
   if (error) return NextResponse.json({ error: error.message }, { status: 404 });
   return NextResponse.json(data);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = await checkAdmin();
-  if (!supabase) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await checkAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings, is_active } = body;
 
-  const { data: existing } = await supabase.from('suppliers').select('driver_config').eq('id', params.id).single();
+  const db = makeAdminClient();
+  const { data: existing } = await db.from('suppliers').select('driver_config').eq('id', params.id).single();
   const driver_config = { ...(existing?.driver_config || {}) };
 
   if (field_mappings !== undefined) driver_config.field_mappings = field_mappings;
@@ -43,16 +52,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (delimiter) updates.csv_delimiter = delimiter;
   if (is_active !== undefined) updates.is_active = is_active;
 
-  const { data, error } = await supabase.from('suppliers').update(updates).eq('id', params.id).select().single();
+  const { data, error } = await db.from('suppliers').update(updates).eq('id', params.id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const supabase = await checkAdmin();
-  if (!supabase) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await checkAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { error } = await supabase.from('suppliers').delete().eq('id', params.id);
+  const db = makeAdminClient();
+  const { error } = await db.from('suppliers').delete().eq('id', params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

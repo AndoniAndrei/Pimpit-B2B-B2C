@@ -1,10 +1,19 @@
 import { evaluateFormula } from './formulaEvaluator';
+import { parseSmartNumber } from './priceParser';
+
+export interface ExtraFieldMapping {
+  label: string;   // Name stored in custom_fields (e.g. "Culoare Specială")
+  column: string;  // CSV column name
+}
 
 export interface FieldMappings {
+  // Required
   part_number: string;
   brand: string;
   name: string;
-  price_formula: string;       // e.g. "{Price_EUR} * 5 * 1.19"
+  price_formula: string; // e.g. "{Price_EUR} * 5 * 1.19"
+
+  // Optional standard fields
   stock?: string;
   stock_incoming?: string;
   diameter?: string;
@@ -13,14 +22,19 @@ export interface FieldMappings {
   pcd?: string;
   et_offset?: string;
   center_bore?: string;
-  images?: string;             // single column; use images_2..images_5 for extras
+  color?: string;
+  finish?: string;
+  product_type?: string;
+
+  // Images — up to 5 columns
+  images?: string;
   images_2?: string;
   images_3?: string;
   images_4?: string;
   images_5?: string;
-  color?: string;
-  finish?: string;
-  product_type?: string;       // fixed value or column name
+
+  // Extra/custom fields the user wants to preserve
+  extra_fields?: ExtraFieldMapping[];
 }
 
 export interface ParsedProduct {
@@ -42,23 +56,25 @@ export interface ParsedProduct {
   color?: string;
   finish?: string;
   productType: string;
+  customFields: Record<string, string>;
   supplierId: number;
   rawData: Record<string, any>;
-}
-
-function getNum(row: Record<string, any>, col?: string): number | undefined {
-  if (!col) return undefined;
-  const v = row[col];
-  if (v === undefined || v === null || v === '') return undefined;
-  const n = parseFloat(String(v).replace(',', '.').replace(/[^\d.-]/g, ''));
-  return isNaN(n) ? undefined : n;
 }
 
 function getStr(row: Record<string, any>, col?: string): string | undefined {
   if (!col) return undefined;
   const v = row[col];
   if (v === undefined || v === null) return undefined;
-  return String(v).trim() || undefined;
+  const s = String(v).trim();
+  return s || undefined;
+}
+
+function getNum(row: Record<string, any>, col?: string): number | undefined {
+  if (!col) return undefined;
+  const v = row[col];
+  if (v === undefined || v === null || v === '') return undefined;
+  const n = parseSmartNumber(v);
+  return n === null ? undefined : n;
 }
 
 export function parseRow(
@@ -72,28 +88,44 @@ export function parseRow(
 
   if (!partNumber || !brand || !name) return null;
 
+  // Evaluate price formula
   let calculatedPrice: number;
   let rawPrice = 0;
   try {
     calculatedPrice = evaluateFormula(mappings.price_formula, row);
-    // Try to extract a "raw price" from the first variable in the formula
+    // Extract raw price from first variable in formula for audit
     const firstVar = mappings.price_formula.match(/\{([^}]+)\}/)?.[1];
     if (firstVar) rawPrice = getNum(row, firstVar) ?? 0;
   } catch {
-    return null;
+    return null; // Skip rows where price can't be computed
   }
 
-  if (calculatedPrice <= 0) return null;
+  if (!calculatedPrice || calculatedPrice <= 0) return null;
 
+  // Collect images
   const images: string[] = [];
   for (const key of ['images', 'images_2', 'images_3', 'images_4', 'images_5'] as const) {
     const img = getStr(row, mappings[key]);
-    if (img) images.push(img);
+    if (img && (img.startsWith('http://') || img.startsWith('https://'))) {
+      images.push(img);
+    }
   }
 
-  const productType = mappings.product_type
-    ? (row[mappings.product_type] || mappings.product_type)
-    : 'jante';
+  // Collect custom/extra fields
+  const customFields: Record<string, string> = {};
+  if (mappings.extra_fields?.length) {
+    for (const ef of mappings.extra_fields) {
+      const val = getStr(row, ef.column);
+      if (val) customFields[ef.label] = val;
+    }
+  }
+
+  // Product type — fixed value or mapped column
+  let productType = 'jante';
+  if (mappings.product_type) {
+    const mapped = row[mappings.product_type];
+    productType = mapped ? String(mapped).trim() : mappings.product_type;
+  }
 
   return {
     partNumber,
@@ -113,7 +145,8 @@ export function parseRow(
     images,
     color: getStr(row, mappings.color),
     finish: getStr(row, mappings.finish),
-    productType: String(productType),
+    productType,
+    customFields,
     supplierId,
     rawData: row,
   };
