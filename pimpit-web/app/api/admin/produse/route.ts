@@ -17,7 +17,7 @@ async function checkAdmin(req: NextRequest) {
   )
   const { data: { user } } = await anonClient.auth.getUser()
   if (!user) return false
-  const { data } = await adminClient().from('users').select('role').eq('id', user.id).single()
+  const { data } = await adminClient().from('users').select('role').eq('id', user.id).maybeSingle()
   return data?.role === 'admin'
 }
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const slug = `${body.brand}-${body.name}-${body.part_number}`
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').slice(0, 200)
 
-  const { data, error } = await db.from('products').insert({ ...body, slug }).select().single()
+  const { data, error } = await db.from('products').insert({ ...body, slug }).select().maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

@@ -1,14 +1,18 @@
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { notFound } from 'next/navigation';
 import ImportWizard from '@/components/admin/ImportWizard';
 
 export default async function EditFeedPage({ params }: { params: { id: string } }) {
-  const supabase = createClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
   const { data: supplier } = await supabase
     .from('suppliers')
     .select('*')
     .eq('id', params.id)
-    .single();
+    .maybeSingle();
 
   if (!supplier) notFound();
 

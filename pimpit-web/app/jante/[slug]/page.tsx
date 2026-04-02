@@ -24,7 +24,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const supabase = createClient()
-  const { data: product } = await supabase.from('products').select('*').eq('slug', params.slug).single()
+  const { data: product } = await supabase.from('products').select('*').eq('slug', params.slug).maybeSingle()
   if (!product) return { title: 'Produs inexistent' }
   return {
     title: `${product.brand} ${product.name} ${product.diameter}x${product.width} ${product.pcd} | Pimpit.ro`,
@@ -34,14 +34,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 export default async function ProductPage({ params }: { params: { slug: string } }) {
   const supabase = createClient()
-  const { data: product, error } = await supabase.from('products').select('*').eq('slug', params.slug).single()
+  const { data: product, error } = await supabase.from('products').select('*').eq('slug', params.slug).maybeSingle()
   
   if (error || !product) notFound()
 
   const { data: { user } } = await supabase.auth.getUser()
   let isB2B = false
   if (user) {
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
     isB2B = profile?.role === 'customer_b2b'
   }
 

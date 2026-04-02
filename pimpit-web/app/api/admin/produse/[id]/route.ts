@@ -10,15 +10,17 @@ function adminClient() {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const { data, error } = await adminClient().from('products').select('*').eq('id', params.id).single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 })
+  const { data, error } = await adminClient().from('products').select('*').eq('id', params.id).maybeSingle()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Produsul nu a fost găsit' }, { status: 404 })
   return NextResponse.json(data)
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const body = await req.json()
-  const { data, error } = await adminClient().from('products').update(body).eq('id', params.id).select().single()
+  const { data, error } = await adminClient().from('products').update(body).eq('id', params.id).select().maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Produsul nu a fost găsit sau actualizarea a eșuat' }, { status: 404 })
   return NextResponse.json(data)
 }
 

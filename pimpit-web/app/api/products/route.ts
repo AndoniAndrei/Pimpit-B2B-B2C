@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   let isB2B = false
   if (user) {
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
     isB2B = profile?.role === 'customer_b2b'
   }
 

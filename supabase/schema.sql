@@ -185,6 +185,7 @@ CREATE TABLE products (
   stock_incoming      INTEGER NOT NULL DEFAULT 0,
   winning_supplier_id SMALLINT REFERENCES suppliers(id),
   winning_raw_price   NUMERIC(12,4),
+  custom_fields       JSONB NOT NULL DEFAULT '{}',
   is_active           BOOLEAN NOT NULL DEFAULT true,
   last_synced_at      TIMESTAMPTZ,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),

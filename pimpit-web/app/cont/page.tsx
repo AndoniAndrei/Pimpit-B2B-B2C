@@ -9,7 +9,7 @@ export default async function AccountPage() {
     redirect('/auth/login')
   }
 
-  const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle()
   const { data: orders } = await supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
 
   return (

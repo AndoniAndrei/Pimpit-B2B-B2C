@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   // 2. Determine if B2B
   let isB2B = false
   if (user) {
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
     isB2B = profile?.role === 'customer_b2b'
   }
 
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     customer_phone,
     customer_name,
     payment_method
-  }).select().single()
+  }).select().maybeSingle()
 
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
 

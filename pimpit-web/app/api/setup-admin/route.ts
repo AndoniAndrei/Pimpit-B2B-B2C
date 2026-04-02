@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     .select('id')
     .eq('role', 'admin')
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (existingAdmin) {
     return NextResponse.json({ error: 'Există deja un administrator. Setup blocat.' }, { status: 403 })

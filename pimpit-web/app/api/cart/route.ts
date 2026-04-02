@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     .from('cart')
     .upsert(cartData, { onConflict: user ? 'user_id,product_id' : 'session_id,product_id' })
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

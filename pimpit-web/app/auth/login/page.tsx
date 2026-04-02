@@ -23,7 +23,7 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      const { data: profile } = await supabase.from('users').select('role').eq('id', data.user.id).single()
+      const { data: profile } = await supabase.from('users').select('role').eq('id', data.user.id).maybeSingle()
       window.location.href = profile?.role === 'admin' ? '/admin' : '/cont'
     }
   }
