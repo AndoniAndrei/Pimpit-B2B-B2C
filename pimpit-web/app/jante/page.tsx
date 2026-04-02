@@ -1,6 +1,7 @@
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/catalog/ProductCard'
 import FilterSidebar from '@/components/catalog/FilterSidebar'
+import CatalogControls from '@/components/catalog/CatalogControls'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -16,28 +17,23 @@ function spArr(val: string | string[] | undefined): string[] {
   return Array.isArray(val) ? val : [val];
 }
 
-function adminClient() {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
-  )
+function dedupe<T>(arr: (T | null | undefined)[]): T[] {
+  const seen: string[] = [];
+  return arr.filter((v): v is T => {
+    if (v == null) return false;
+    const k = String(v);
+    if (seen.includes(k)) return false;
+    seen.push(k); return true;
+  });
 }
 
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
-  const db = adminClient()
+  // Use anon client — public products are readable via RLS policy
+  const db = createClient()
 
-  // ── Build product query ──────────────────────────────────────────────────
   const page = Math.max(1, parseInt(sp(searchParams.page) || '1'))
   const PAGE_SIZE = 24
   const from = (page - 1) * PAGE_SIZE
-
-  let query = db.from('products')
-    .select('id,slug,part_number,brand,name,price,price_old,price_b2b,stock,stock_incoming,is_active,images,diameter,width,pcd,et_offset,center_bore,color,finish', { count: 'exact' })
-    .eq('is_active', true)
-    .order('stock', { ascending: false })
-    .order('price', { ascending: true })
-    .range(from, from + PAGE_SIZE - 1)
 
   const search = sp(searchParams.search)
   const brands = spArr(searchParams.brand)
@@ -48,7 +44,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const finishes = spArr(searchParams.finish)
   const priceMin = parseInt(sp(searchParams.price_min) || '0')
   const priceMax = parseInt(sp(searchParams.price_max) || '0')
-  const sortBy = sp(searchParams.sort) || 'relevance'
+  const sortBy = sp(searchParams.sort) || 'stock'
+
+  // ── Products query ─────────────────────────────────────────────────────────
+  let query = db.from('products')
+    .select('id,slug,part_number,brand,name,price,price_old,price_b2b,stock,stock_incoming,images,diameter,width,pcd,et_offset,center_bore,color,finish', { count: 'exact' })
+    .eq('is_active', true)
+    .range(from, from + PAGE_SIZE - 1)
 
   if (search) query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,part_number.ilike.%${search}%`)
   if (brands.length) query = query.in('brand', brands)
@@ -63,11 +65,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   if (sortBy === 'price_asc') query = query.order('price', { ascending: true })
   else if (sortBy === 'price_desc') query = query.order('price', { ascending: false })
   else if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
+  else query = query.order('stock', { ascending: false }).order('price', { ascending: true })
 
   const { data: products, count, error } = await query
 
-  // ── Fetch filter options ─────────────────────────────────────────────────
-  const [brandsRes, diamsRes, widthsRes, pcdsRes, colorsRes, finishesRes, priceRangeRes] = await Promise.all([
+  // ── Filter options (parallel) ─────────────────────────────────────────────
+  const [brandsRes, diamsRes, widthsRes, pcdsRes, colorsRes, finishesRes, minPriceRes, maxPriceRes] = await Promise.all([
     db.from('products').select('brand').eq('is_active', true).not('brand', 'is', null).order('brand'),
     db.from('products').select('diameter').eq('is_active', true).not('diameter', 'is', null).order('diameter'),
     db.from('products').select('width').eq('is_active', true).not('width', 'is', null).order('width'),
@@ -75,90 +78,41 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     db.from('products').select('color').eq('is_active', true).not('color', 'is', null).order('color'),
     db.from('products').select('finish').eq('is_active', true).not('finish', 'is', null).order('finish'),
     db.from('products').select('price').eq('is_active', true).order('price', { ascending: true }).limit(1),
+    db.from('products').select('price').eq('is_active', true).order('price', { ascending: false }).limit(1),
   ])
 
-  function dedupe<T>(arr: (T | null | undefined)[]): T[] {
-    const seen = new Set<string>();
-    return arr.filter((v): v is T => {
-      if (v == null) return false;
-      const k = String(v);
-      if (seen.has(k)) return false;
-      seen.add(k); return true;
-    });
-  }
-  const uniqueBrands = dedupe<string>(brandsRes.data?.map(r => r.brand) ?? [])
-  const uniqueDiams = dedupe<number>(diamsRes.data?.map(r => r.diameter) ?? [])
-  const uniqueWidths = dedupe<number>(widthsRes.data?.map(r => r.width) ?? [])
-  const uniquePcds = dedupe<string>(pcdsRes.data?.map(r => r.pcd) ?? [])
-  const uniqueColors = dedupe<string>(colorsRes.data?.map(r => r.color) ?? [])
-  const uniqueFinishes = dedupe<string>(finishesRes.data?.map(r => r.finish) ?? [])
-
-  // Price range
-  const { data: maxPriceRow } = await db.from('products').select('price').eq('is_active', true).order('price', { ascending: false }).limit(1)
-  const minP = priceRangeRes.data?.[0]?.price ?? 0
-  const maxP = maxPriceRow?.[0]?.price ?? 99999
-
   const filterOptions = {
-    brands: uniqueBrands,
-    diameters: uniqueDiams,
-    widths: uniqueWidths,
-    pcds: uniquePcds,
-    colors: uniqueColors,
-    finishes: uniqueFinishes,
-    priceMin: Math.floor(minP),
-    priceMax: Math.ceil(maxP),
+    brands:   dedupe<string>(brandsRes.data?.map(r => r.brand) ?? []),
+    diameters: dedupe<number>(diamsRes.data?.map(r => r.diameter) ?? []),
+    widths:   dedupe<number>(widthsRes.data?.map(r => r.width) ?? []),
+    pcds:     dedupe<string>(pcdsRes.data?.map(r => r.pcd) ?? []),
+    colors:   dedupe<string>(colorsRes.data?.map(r => r.color) ?? []),
+    finishes: dedupe<string>(finishesRes.data?.map(r => r.finish) ?? []),
+    priceMin: Math.floor(minPriceRes.data?.[0]?.price ?? 0),
+    priceMax: Math.ceil(maxPriceRes.data?.[0]?.price ?? 99999),
   }
-
-  // ── B2B check ─────────────────────────────────────────────────────────────
-  // Note: catalog uses public data — no user-specific logic here
-  // B2B pricing handled client-side via cookie/session
 
   const totalPages = Math.ceil((count || 0) / PAGE_SIZE)
-  const activeFilterCount = brands.length + diameters.length + widths.length + pcds.length + colors.length + finishes.length + (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
+  const activeFilterCount = brands.length + diameters.length + widths.length + pcds.length +
+    colors.length + finishes.length + (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
 
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header bar */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+          <Suspense fallback={
+            <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-gray-900">Jante aliaj</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {count ?? 0} produse
-                {activeFilterCount > 0 && ` · ${activeFilterCount} filtr${activeFilterCount === 1 ? 'u activ' : 'e active'}`}
-              </p>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Search */}
-              <form action="/jante" method="get" className="relative">
-                {/* Preserve other filters */}
-                {brands.map(b => <input key={b} type="hidden" name="brand" value={b} />)}
-                {diameters.map(d => <input key={d} type="hidden" name="diameter" value={d} />)}
-                <input
-                  type="search"
-                  name="search"
-                  defaultValue={search}
-                  placeholder="Caută brand, cod, denumire..."
-                  className="border rounded-xl px-4 py-2 text-sm w-64 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </form>
-              {/* Sort */}
-              <form action="/jante" method="get">
-                {brands.map(b => <input key={b} type="hidden" name="brand" value={b} />)}
-                {diameters.map(d => <input key={d} type="hidden" name="diameter" value={d} />)}
-                {search && <input type="hidden" name="search" value={search} />}
-                <select name="sort" defaultValue={sortBy}
-                  onChange={e => (e.target.form as HTMLFormElement)?.submit()}
-                  className="border rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
-                  <option value="relevance">Relevanță</option>
-                  <option value="price_asc">Preț crescător</option>
-                  <option value="price_desc">Preț descrescător</option>
-                  <option value="newest">Cele mai noi</option>
-                </select>
-              </form>
-            </div>
-          </div>
+          }>
+            <CatalogControls
+              initialSearch={search}
+              initialSort={sortBy}
+              totalCount={count ?? 0}
+              activeFilterCount={activeFilterCount}
+            />
+          </Suspense>
         </div>
       </div>
 
@@ -168,7 +122,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
           {/* ── Sidebar ── */}
           <aside className="w-64 shrink-0 hidden lg:block">
             <div className="bg-white border rounded-2xl p-5 sticky top-6">
-              <Suspense>
+              <Suspense fallback={<div className="text-sm text-gray-400">Se încarcă filtrele...</div>}>
                 <FilterSidebar options={filterOptions} />
               </Suspense>
             </div>
@@ -180,9 +134,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
                 Eroare la încărcarea produselor: {error.message}
               </div>
-            ) : products?.length === 0 ? (
+            ) : !products?.length ? (
               <div className="bg-white border rounded-2xl p-12 text-center">
-                <div className="text-4xl mb-4">🔍</div>
+                <div className="text-5xl mb-4">🔍</div>
                 <h3 className="font-semibold text-gray-900 mb-2">Niciun produs găsit</h3>
                 <p className="text-gray-500 text-sm mb-4">Încearcă să modifici filtrele sau termenul de căutare.</p>
                 <Link href="/jante" className="text-primary hover:underline text-sm font-medium">
@@ -191,20 +145,24 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {products?.map(p => (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {products.map(p => (
                     <ProductCard key={p.id} product={p as any} isB2B={false} />
                   ))}
                 </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8">
+                  <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
                     {page > 1 && (
                       <PaginationLink searchParams={searchParams} page={page - 1}>← Înapoi</PaginationLink>
                     )}
                     {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
+                      const p = totalPages <= 7
+                        ? i + 1
+                        : page <= 4 ? i + 1
+                        : page >= totalPages - 3 ? totalPages - 6 + i
+                        : page - 3 + i;
                       return (
                         <PaginationLink key={p} searchParams={searchParams} page={p} active={p === page}>
                           {p}

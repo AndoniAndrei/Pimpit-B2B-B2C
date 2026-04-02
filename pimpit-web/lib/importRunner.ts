@@ -21,6 +21,7 @@ export interface ImportResult {
   parsed: number;
   upserted: number;
   skipped: number;
+  zeroPriceImported: number;
   errors: string[];
   warnings: string[];
   durationMs: number;
@@ -229,13 +230,14 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
         pcd: p.pcd ?? null,
         color: p.color ?? null,
         finish: p.finish ?? null,
-        price: p.calculatedPrice,
+        price: p.priceIsZero ? 0 : p.calculatedPrice,
         images: p.images,
         stock: p.stock,
         stock_incoming: p.stockIncoming,
         winning_supplier_id: p.supplierId,
         winning_raw_price: p.rawPrice,
-        is_active: true,
+        // Zero-price products are imported but hidden from storefront until price is set
+        is_active: !p.priceIsZero,
         last_synced_at: new Date().toISOString(),
       };
       if (hasCustomFields && Object.keys(p.customFields).length > 0) {
@@ -303,6 +305,11 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     duration_ms: durationMs,
   });
 
+  const zeroPriceCount = products.filter(p => p.priceIsZero).length;
+  if (zeroPriceCount > 0) {
+    warnings.push(`${zeroPriceCount} produse importate cu preț 0 (is_active=false) — setează prețul manual în secțiunea Produse`);
+  }
+
   return {
     supplierId,
     supplierName: supplier.name,
@@ -310,6 +317,7 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     parsed: products.length,
     upserted,
     skipped: skippedRows,
+    zeroPriceImported: zeroPriceCount,
     errors: errors.slice(0, 20),
     warnings,
     durationMs,

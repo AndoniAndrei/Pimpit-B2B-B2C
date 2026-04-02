@@ -66,6 +66,7 @@ export interface ParsedProduct {
   brand: string;
   name: string;
   calculatedPrice: number;
+  priceIsZero: boolean;       // true = price failed/0 → import as inactive
   rawPrice: number;
   rawCurrency: string;
   stock: number;
@@ -83,6 +84,7 @@ export interface ParsedProduct {
   customFields: Record<string, string>;
   supplierId: number;
   rawData: Record<string, any>;
+  skipReason?: string;        // why this row was partially problematic
 }
 
 function getStr(row: Record<string, any>, col?: string): string | undefined {
@@ -117,21 +119,32 @@ export function parseRow(
     ? resolveTemplate(mappings.name, row) || undefined
     : getStr(row, mappings.name);
 
-  if (!partNumber || !brand || !name) return null;
+  // partNumber is the minimum requirement for a unique DB key — skip if absent
+  if (!partNumber) return null;
 
-  // Evaluate price formula
-  let calculatedPrice: number;
+  // Use fallbacks for brand and name if missing
+  const resolvedBrand = brand || 'Generic';
+  const resolvedName = name || partNumber;
+
+  // Evaluate price formula — zero/invalid price → import as inactive, not skip
+  let calculatedPrice = 0;
+  let priceIsZero = false;
   let rawPrice = 0;
+  let skipReason: string | undefined;
   try {
-    calculatedPrice = evaluateFormula(mappings.price_formula, row);
-    // Extract raw price from first variable in formula for audit
+    const result = evaluateFormula(mappings.price_formula, row);
+    if (!result || result <= 0) {
+      priceIsZero = true;
+      skipReason = `Preț 0 sau negativ (formula: ${mappings.price_formula})`;
+    } else {
+      calculatedPrice = result;
+    }
     const firstVar = mappings.price_formula.match(/\{([^}]+)\}/)?.[1];
     if (firstVar) rawPrice = getNum(row, firstVar) ?? 0;
-  } catch {
-    return null; // Skip rows where price can't be computed
+  } catch (e: any) {
+    priceIsZero = true;
+    skipReason = `Eroare formulă preț: ${e.message}`;
   }
-
-  if (!calculatedPrice || calculatedPrice <= 0) return null;
 
   // Collect images
   const images: string[] = [];
@@ -160,10 +173,12 @@ export function parseRow(
 
   return {
     partNumber,
-    brand,
-    name,
+    brand: resolvedBrand,
+    name: resolvedName,
     calculatedPrice,
+    priceIsZero,
     rawPrice,
+    skipReason,
     rawCurrency: 'RON',
     stock: getNum(row, mappings.stock) ?? 0,
     stockIncoming: getNum(row, mappings.stock_incoming) ?? 0,
