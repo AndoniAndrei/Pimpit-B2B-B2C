@@ -1,14 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Allow images from any HTTPS/HTTP source — needed for multi-supplier imports
+    // where image CDN hostnames are unknown in advance
     remotePatterns: [
-      { protocol: 'https', hostname: '*.googleusercontent.com' },
-      { protocol: 'https', hostname: 'api.statusfalgar.se' },
-      { protocol: 'https', hostname: 'www.abswheels.eu' },
-      { protocol: 'https', hostname: 'veemann.com' },
-      { protocol: 'https', hostname: '*.wheeltrade.eu' },
-      { protocol: 'https', hostname: 'felgeo.pl' },
-      { protocol: 'http', hostname: 'felgeo.pl' }
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http',  hostname: '**' },
     ],
   },
 };
