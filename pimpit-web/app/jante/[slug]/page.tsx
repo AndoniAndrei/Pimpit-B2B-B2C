@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import PriceDisplay from '@/components/catalog/PriceDisplay'
+import ProductImage from '@/components/catalog/ProductImage'
 
 export const revalidate = 3600 // ISR 1 hour
 
@@ -51,24 +51,19 @@ export default async function ProductPage({ params }: { params: { slug: string }
         {/* Image Gallery */}
         <div className="space-y-4">
           <div className="aspect-square relative bg-muted rounded-lg overflow-hidden">
-            {product.images?.[0] ? (
-              <Image 
-                src={product.images[0]} 
-                alt={product.name} 
-                fill 
-                className="object-contain"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">Fără imagine</div>
-            )}
+            <ProductImage
+              src={product.images?.[0] || ''}
+              alt={product.name}
+              fill
+              className="object-contain"
+              priority
+            />
           </div>
           {product.images?.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
               {product.images.slice(1).map((img: string, i: number) => (
                 <div key={i} className="w-20 h-20 relative bg-muted rounded-md shrink-0">
-                  <Image src={img} alt="" fill className="object-cover" />
+                  <ProductImage src={img} alt="" fill className="object-cover" />
                 </div>
               ))}
             </div>
