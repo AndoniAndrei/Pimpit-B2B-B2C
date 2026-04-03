@@ -41,6 +41,7 @@ export default function ProductImage({ src, alt, className = '', fill = false, s
         alt={alt}
         onError={() => setBroken(true)}
         loading={priority ? 'eager' : 'lazy'}
+        referrerPolicy="no-referrer"
         className={`absolute inset-0 w-full h-full object-contain ${className}`}
       />
     );
@@ -53,6 +54,7 @@ export default function ProductImage({ src, alt, className = '', fill = false, s
       alt={alt}
       onError={() => setBroken(true)}
       loading={priority ? 'eager' : 'lazy'}
+      referrerPolicy="no-referrer"
       className={`w-full h-full object-contain ${className}`}
     />
   );

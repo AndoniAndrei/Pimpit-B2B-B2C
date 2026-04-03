@@ -86,28 +86,59 @@ export default async function ProductPage({ params }: { params: { slug: string }
             />
           </div>
 
-          <div className="space-y-4 mb-8">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">Diametru</span>
-              <span className="font-medium">{product.diameter}"</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">Lățime</span>
-              <span className="font-medium">{product.width}"</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">PCD</span>
-              <span className="font-medium">{product.pcd}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">ET</span>
-              <span className="font-medium">{product.et_offset}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-muted-foreground">CB (Gaura centrală)</span>
-              <span className="font-medium">{product.center_bore} mm</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
+          <div className="space-y-0 mb-8 divide-y">
+            {product.diameter != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Diametru</span>
+                <span className="font-medium">{product.diameter}"</span>
+              </div>
+            )}
+            {product.width != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Lățime</span>
+                <span className="font-medium">{product.width}"</span>
+              </div>
+            )}
+            {product.pcd && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">PCD</span>
+                <span className="font-medium">{product.pcd}</span>
+              </div>
+            )}
+            {product.et_offset != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">ET</span>
+                <span className="font-medium">{product.et_offset}</span>
+              </div>
+            )}
+            {product.center_bore != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">CB (Gaura centrală)</span>
+                <span className="font-medium">{product.center_bore} mm</span>
+              </div>
+            )}
+            {product.color && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Culoare</span>
+                <span className="font-medium">{product.color}</span>
+              </div>
+            )}
+            {product.finish && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Finisaj</span>
+                <span className="font-medium">{product.finish}</span>
+              </div>
+            )}
+            {/* Custom fields from import mapping */}
+            {product.custom_fields && Object.entries(product.custom_fields as Record<string, string>).map(([label, value]) =>
+              value ? (
+                <div key={label} className="flex justify-between py-2">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-medium">{value}</span>
+                </div>
+              ) : null
+            )}
+            <div className="flex justify-between py-2">
               <span className="text-muted-foreground">Stoc</span>
               <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {product.stock > 0 ? `${product.stock} buc` : 'Indisponibil'}

@@ -240,8 +240,8 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
         is_active: !p.priceIsZero,
         last_synced_at: new Date().toISOString(),
       };
-      if (hasCustomFields && Object.keys(p.customFields).length > 0) {
-        record.custom_fields = p.customFields;
+      if (hasCustomFields) {
+        record.custom_fields = p.customFields ?? {};
       }
       return record;
     });
