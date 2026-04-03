@@ -2,31 +2,36 @@
  * Smart price parser that handles all common numeric formats:
  *
  * European format (period = thousands, comma = decimal):
- *   "14.000,00"  → 14000.00
- *   "1.234.567,89" → 1234567.89
- *   "14,5"       → 14.5
+ *   "14.000,00"      → 14000.00
+ *   "1.431 lei"      → 1431      ← strips text suffix before parsing
+ *   "1.234.567,89"   → 1234567.89
+ *   "14,5"           → 14.5
  *
  * US/Standard format (comma = thousands, period = decimal):
- *   "14,000.00"  → 14000.00
- *   "1,234,567.89" → 1234567.89
- *   "14.5"       → 14.5
+ *   "14,000.00"      → 14000.00
+ *   "1,234,567.89"   → 1234567.89
+ *   "14.5"           → 14.5
  *
  * Plain numbers:
- *   "14000"      → 14000
- *   14000        → 14000
+ *   "14000"          → 14000
+ *   14000            → 14000
  *
- * With currency symbols:
- *   "14.000,00 RON" → 14000.00
- *   "€ 1.234,56"    → 1234.56
+ * With any text suffix/prefix (stripped completely):
+ *   "14.000,00 RON"  → 14000.00
+ *   "€ 1.234,56"     → 1234.56
+ *   "1.431 lei"      → 1431
+ *   "250 kg"         → 250
  */
 export function parseSmartNumber(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === 'number') return isNaN(value) ? null : value;
 
-  // Strip currency symbols, whitespace, common noise
+  // Strip EVERYTHING except digits, period, comma, and minus sign.
+  // This handles any currency suffix/prefix: "lei", "RON", "EUR", "$", "€", "kg", etc.
+  // Critical: "1.431 lei" → "1.431" → correctly detected as European thousands → 1431
   const cleaned = String(value)
     .trim()
-    .replace(/[€$£\sRONEURUSDron]/gi, '')
+    .replace(/[^0-9.,-]/g, '')
     .trim();
 
   if (cleaned === '' || cleaned === '-') return null;
@@ -64,8 +69,8 @@ export function parseSmartNumber(value: string | number | null | undefined): num
       // Multiple periods → thousands separators: 1.234.567
       normalized = cleaned.replace(/\./g, '');
     } else if (afterPeriod.length === 3 && periodCount === 1) {
-      // Ambiguous: 14.000 — in European context this is 14000
-      // Safe choice: treat as thousands separator (avoids 14000 → 14 disaster)
+      // Ambiguous: 14.000 or 1.431 — treat as thousands separator
+      // Safe choice: avoids 1431 → 1.43 disaster
       normalized = cleaned.replace('.', '');
     }
     // else: standard decimal 14.5, 14.50 — no change
@@ -81,7 +86,7 @@ export function parseSmartNumber(value: string | number | null | undefined): num
  * Returns a warning message if ambiguous, null if clear
  */
 export function detectPriceAmbiguity(value: string): string | null {
-  const cleaned = String(value).replace(/[€$£\sRONEURUSDron]/gi, '').trim();
+  const cleaned = String(value).replace(/[^0-9.,-]/g, '').trim();
   const lastPeriod = cleaned.lastIndexOf('.');
   const lastComma = cleaned.lastIndexOf(',');
 
