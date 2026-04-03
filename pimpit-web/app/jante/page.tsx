@@ -27,6 +27,37 @@ function dedupe<T>(arr: (T | null | undefined)[]): T[] {
   });
 }
 
+interface ActiveFilters {
+  search: string;
+  brands: string[];
+  diameters: string[];
+  widths: string[];
+  pcds: string[];
+  colors: string[];
+  finishes: string[];
+  priceMin: number;
+  priceMax: number;
+}
+
+/**
+ * Apply active filters to a Supabase query, excluding one dimension.
+ * Used for cascading/dependent faceted filters: each filter dimension shows
+ * only values that exist given all OTHER active filters.
+ */
+function withFilters(query: any, f: ActiveFilters, exclude: string) {
+  if (exclude !== 'search' && f.search)
+    query = query.or(`name.ilike.%${f.search}%,brand.ilike.%${f.search}%,part_number.ilike.%${f.search}%`);
+  if (exclude !== 'brand' && f.brands.length) query = query.in('brand', f.brands);
+  if (exclude !== 'diameter' && f.diameters.length) query = query.in('diameter', f.diameters.map(Number));
+  if (exclude !== 'width' && f.widths.length) query = query.in('width', f.widths.map(Number));
+  if (exclude !== 'pcd' && f.pcds.length) query = query.in('pcd', f.pcds);
+  if (exclude !== 'color' && f.colors.length) query = query.in('color', f.colors);
+  if (exclude !== 'finish' && f.finishes.length) query = query.in('finish', f.finishes);
+  if (exclude !== 'price' && f.priceMin) query = query.gte('price', f.priceMin);
+  if (exclude !== 'price' && f.priceMax) query = query.lte('price', f.priceMax);
+  return query;
+}
+
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
   // Use anon client — public products are readable via RLS policy
   const db = createClient()
@@ -69,14 +100,21 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const { data: products, count, error } = await query
 
-  // ── Filter options (parallel) ─────────────────────────────────────────────
+  // ── Filter options (cascading/dependent faceted search) ───────────────────
+  // Each dimension shows only values that exist given ALL OTHER active filters.
+  // e.g. selecting diameter=20" makes PCD filter only show PCDs available on 20" rims.
+  const af: ActiveFilters = { search, brands, diameters, widths, pcds, colors, finishes, priceMin, priceMax };
+
+  const base = () => db.from('products').eq('is_active', true);
+
   const [brandsRes, diamsRes, widthsRes, pcdsRes, colorsRes, finishesRes, minPriceRes, maxPriceRes] = await Promise.all([
-    db.from('products').select('brand').eq('is_active', true).not('brand', 'is', null).order('brand'),
-    db.from('products').select('diameter').eq('is_active', true).not('diameter', 'is', null).order('diameter'),
-    db.from('products').select('width').eq('is_active', true).not('width', 'is', null).order('width'),
-    db.from('products').select('pcd').eq('is_active', true).not('pcd', 'is', null).order('pcd'),
-    db.from('products').select('color').eq('is_active', true).not('color', 'is', null).order('color'),
-    db.from('products').select('finish').eq('is_active', true).not('finish', 'is', null).order('finish'),
+    withFilters(base().select('brand').not('brand', 'is', null), af, 'brand').order('brand'),
+    withFilters(base().select('diameter').not('diameter', 'is', null), af, 'diameter').order('diameter'),
+    withFilters(base().select('width').not('width', 'is', null), af, 'width').order('width'),
+    withFilters(base().select('pcd').not('pcd', 'is', null), af, 'pcd').order('pcd'),
+    withFilters(base().select('color').not('color', 'is', null), af, 'color').order('color'),
+    withFilters(base().select('finish').not('finish', 'is', null), af, 'finish').order('finish'),
+    // Price range is always global (not cascading) to show full price extent
     db.from('products').select('price').eq('is_active', true).order('price', { ascending: true }).limit(1),
     db.from('products').select('price').eq('is_active', true).order('price', { ascending: false }).limit(1),
   ])
