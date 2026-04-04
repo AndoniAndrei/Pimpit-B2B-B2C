@@ -103,6 +103,20 @@ function getNum(row: Record<string, any>, col?: string): number | undefined {
   return n === null ? undefined : n;
 }
 
+/**
+ * Normalise a raw image URL from a supplier CSV:
+ * - protocol-relative "//cdn.com/img.jpg" → "https://cdn.com/img.jpg"
+ * - absolute http/https URLs → kept as-is
+ * - relative paths or empty → null (discard)
+ */
+function normalizeImageUrl(raw: string): string | null {
+  const url = raw.trim();
+  if (!url) return null;
+  if (url.startsWith('https://') || url.startsWith('http://')) return url;
+  if (url.startsWith('//')) return `https:${url}`;
+  return null; // relative path — cannot use
+}
+
 export function parseRow(
   row: Record<string, any>,
   mappings: FieldMappings,
@@ -146,13 +160,13 @@ export function parseRow(
     skipReason = `Eroare formulă preț: ${e.message}`;
   }
 
-  // Collect images
+  // Collect images — normalise URLs before storing
   const images: string[] = [];
   for (const key of ['images', 'images_2', 'images_3', 'images_4', 'images_5'] as const) {
     const img = getStr(row, mappings[key]);
-    if (img && (img.startsWith('http://') || img.startsWith('https://'))) {
-      images.push(img);
-    }
+    if (!img) continue;
+    const url = normalizeImageUrl(img);
+    if (url) images.push(url);
   }
 
   // Collect custom/extra fields
@@ -185,7 +199,7 @@ export function parseRow(
     diameter: getNum(row, mappings.diameter),
     width: getNum(row, mappings.width),
     widthRear: getNum(row, mappings.width_rear),
-    pcd: getStr(row, mappings.pcd),
+    pcd: mappings.pcd?.includes('{') ? resolveTemplate(mappings.pcd, row) || undefined : getStr(row, mappings.pcd),
     etOffset: getNum(row, mappings.et_offset),
     centerBore: getNum(row, mappings.center_bore),
     images,

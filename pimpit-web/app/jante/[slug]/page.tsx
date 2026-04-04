@@ -6,12 +6,6 @@ import ProductImage from '@/components/catalog/ProductImage'
 
 export const revalidate = 3600 // ISR 1 hour
 
-/** Extract PCD pattern from product name (e.g. "5X120", "6x130") as fallback when pcd column is null */
-function extractPcd(name: string): string | null {
-  const m = name?.match(/\b(\d+[xX]\d+(?:\.\d+)?)\b/);
-  return m ? m[1].toUpperCase() : null;
-}
-
 export async function generateStaticParams() {
   // Use a standard client without cookies for build-time static generation
   const supabase = createBrowserClient(
@@ -105,10 +99,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 <span className="font-medium">{product.width}"</span>
               </div>
             )}
-            {(product.pcd || extractPcd(product.name)) && (
+            {product.pcd && (
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">PCD</span>
-                <span className="font-medium">{product.pcd || extractPcd(product.name)}</span>
+                <span className="font-medium">{product.pcd}</span>
               </div>
             )}
             {product.et_offset != null && (
