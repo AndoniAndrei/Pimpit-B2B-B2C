@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 
 interface FilterOptions {
   brands: string[];
+  models: string[];
   diameters: number[];
   widths: number[];
   pcds: string[];
@@ -75,6 +76,7 @@ export default function FilterSidebar({ options }: Props) {
   const priceMin = parseInt(getParam('price_min') || '0');
   const priceMax = parseInt(getParam('price_max') || String(options.priceMax));
   const activeBrands = getParamArr('brand');
+  const activeModels = getParamArr('model');
   const activeDiameters = getParamArr('diameter');
   const activeWidths = getParamArr('width');
   const activePcds = getParamArr('pcd');
@@ -97,7 +99,7 @@ export default function FilterSidebar({ options }: Props) {
         <div className="flex flex-wrap gap-1.5 mb-5">
           {Array.from(searchParams.entries()).map(([k, v]) => (
             <button key={`${k}-${v}`}
-              onClick={() => updateFilter(k, v, ['brand','diameter','width','pcd'].includes(k))}
+              onClick={() => updateFilter(k, v, ['brand','model','diameter','width','pcd'].includes(k))}
               className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-1">
               {k}: {v} ✕
             </button>
@@ -116,6 +118,23 @@ export default function FilterSidebar({ options }: Props) {
                   onChange={() => updateFilter('brand', b, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{b}</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* Model */}
+      {options.models?.length > 0 && (
+        <FilterSection title="Model" defaultOpen={false}>
+          <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+            {options.models.map(m => (
+              <label key={m} className="flex items-center gap-2.5 cursor-pointer group">
+                <input type="checkbox"
+                  checked={activeModels.includes(m)}
+                  onChange={() => updateFilter('model', m, true)}
+                  className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
+                <span className="text-sm group-hover:text-primary transition-colors">{m}</span>
               </label>
             ))}
           </div>

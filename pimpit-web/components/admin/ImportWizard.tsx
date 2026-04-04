@@ -24,52 +24,98 @@ interface ExtraField {
 }
 
 interface FieldMappings {
+  // Required
   part_number: string; brand: string; name: string; price_formula: string;
-  stock: string; stock_incoming: string; diameter: string; width: string;
-  pcd: string; et_offset: string; center_bore: string;
-  images: string; images_2: string; images_3: string; images_4: string; images_5: string;
+  // Wheel spec
+  model: string; ean: string; description: string;
+  stock: string; stock_incoming: string;
+  diameter: string; width: string; pcd: string; et_offset: string; center_bore: string;
   color: string; finish: string;
+  weight: string; max_load: string; discontinued: string;
+  production_method: string; concave_profile: string; cn_code: string;
+  certificate_url: string; tuv_max_load: string;
+  // Media
+  images: string; images_2: string; images_3: string; images_4: string; images_5: string;
+  youtube_link: string; model_3d_url: string;
+  // Import behaviour (not column names)
+  product_type: string;               // 'jante' | 'accesorii' | column name
+  price_rounding: 'none' | 'round' | 'ceil' | 'floor';
+  brand_filter: string;               // comma-separated list
+  model_filter: string;               // comma-separated list
   extra_fields: ExtraField[];
 }
 
 const EMPTY_MAPPINGS: FieldMappings = {
   part_number: '', brand: '', name: '', price_formula: '',
-  stock: '', stock_incoming: '', diameter: '', width: '',
-  pcd: '', et_offset: '', center_bore: '',
+  model: '', ean: '', description: '',
+  stock: '', stock_incoming: '',
+  diameter: '', width: '', pcd: '', et_offset: '', center_bore: '',
+  color: '', finish: '',
+  weight: '', max_load: '', discontinued: '',
+  production_method: '', concave_profile: '', cn_code: '',
+  certificate_url: '', tuv_max_load: '',
   images: '', images_2: '', images_3: '', images_4: '', images_5: '',
-  color: '', finish: '', extra_fields: [],
+  youtube_link: '', model_3d_url: '',
+  product_type: 'jante', price_rounding: 'none',
+  brand_filter: '', model_filter: '',
+  extra_fields: [],
 };
 
-// fieldType: 'template' = free text + {col} substitution, 'formula' = math formula, 'select' = single column dropdown, 'image' = URL column
+type FieldType = 'template' | 'formula' | 'select' | 'image';
+type FieldGroup = 'required' | 'spec' | 'media' | 'physical';
+
 const STANDARD_FIELDS: {
-  key: keyof Omit<FieldMappings, 'extra_fields'>;
+  key: keyof Omit<FieldMappings, 'extra_fields' | 'product_type' | 'price_rounding' | 'brand_filter' | 'model_filter'>;
   label: string;
   required: boolean;
-  fieldType: 'template' | 'formula' | 'select' | 'image';
+  fieldType: FieldType;
+  group: FieldGroup;
   hint?: string;
 }[] = [
-  { key: 'part_number',   label: 'Cod produs (SKU)',    required: true,  fieldType: 'template',
-    hint: 'Selectează o coloană sau combină: {SKU}-{Variant}' },
-  { key: 'brand',         label: 'Brand / Marcă',       required: true,  fieldType: 'template',
-    hint: 'Ex: {Brand} sau text fix "Borbet"' },
-  { key: 'name',          label: 'Denumire produs',     required: true,  fieldType: 'template',
-    hint: 'Combină câmpuri: {Brand} {Diameter}" {Width}/{ET} {PCD}' },
-  { key: 'price_formula', label: 'Formula preț RON',    required: true,  fieldType: 'formula',
-    hint: 'Ex: {Price_EUR} * 5 * 1.19  sau  {Pret} * 1.10 + 20' },
-  { key: 'stock',         label: 'Stoc disponibil',     required: false, fieldType: 'select' },
-  { key: 'stock_incoming',label: 'Stoc în tranzit',     required: false, fieldType: 'select' },
-  { key: 'diameter',      label: 'Diametru (inch)',      required: false, fieldType: 'select' },
-  { key: 'width',         label: 'Lățime',              required: false, fieldType: 'select' },
-  { key: 'pcd',           label: 'PCD',                 required: false, fieldType: 'template',
-    hint: 'Ex: {PCD} sau {Boli}x{BCD}' },
-  { key: 'et_offset',     label: 'ET / Offset',         required: false, fieldType: 'select' },
-  { key: 'center_bore',   label: 'Alezaj central',      required: false, fieldType: 'select' },
-  { key: 'images',        label: 'Imagine 1 (URL)',      required: false, fieldType: 'image' },
-  { key: 'images_2',      label: 'Imagine 2 (URL)',      required: false, fieldType: 'image' },
-  { key: 'images_3',      label: 'Imagine 3 (URL)',      required: false, fieldType: 'image' },
-  { key: 'color',         label: 'Culoare',             required: false, fieldType: 'template',
-    hint: 'Ex: {Color} sau {Culoare} {Finisaj}' },
-  { key: 'finish',        label: 'Finisaj',             required: false, fieldType: 'template' },
+  // ── Required ───────────────────────────────────────────────────────────────
+  { key: 'part_number',    label: 'Cod produs (SKU)',     required: true,  fieldType: 'template', group: 'required',
+    hint: 'O coloană sau combinație: {SKU}-{Variant}' },
+  { key: 'brand',          label: 'Brand / Marcă',        required: true,  fieldType: 'template', group: 'required',
+    hint: 'Ex: {brand} sau valoare fixă "Borbet"' },
+  { key: 'name',           label: 'Denumire produs',      required: true,  fieldType: 'template', group: 'required',
+    hint: 'Ex: {brand} {size}" {width}/{et} {pcd}' },
+  { key: 'price_formula',  label: 'Formula preț RON',     required: true,  fieldType: 'formula',  group: 'required',
+    hint: 'Ex: {priceAfterDiscount} * 5 * 1.19' },
+  // ── Spec ───────────────────────────────────────────────────────────────────
+  { key: 'model',          label: 'Model',                required: false, fieldType: 'template', group: 'spec',
+    hint: 'Ex: {model} — numele modelului jantei' },
+  { key: 'ean',            label: 'EAN / Cod de bare',    required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'stock',          label: 'Stoc disponibil',      required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'stock_incoming', label: 'Stoc în tranzit',      required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'diameter',       label: 'Diametru / size (inch)', required: false, fieldType: 'select', group: 'spec' },
+  { key: 'width',          label: 'Lățime / width',       required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'pcd',            label: 'PCD',                  required: false, fieldType: 'template', group: 'spec',
+    hint: 'Ex: {pcd} sau {boli}x{BCD}' },
+  { key: 'et_offset',      label: 'ET / Offset',          required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'center_bore',    label: 'Alezaj central',       required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'color',          label: 'Culoare / colour',     required: false, fieldType: 'template', group: 'spec',
+    hint: 'Ex: {colour} sau {colour} {finish}' },
+  { key: 'finish',         label: 'Finisaj',              required: false, fieldType: 'template', group: 'spec' },
+  { key: 'description',    label: 'Descriere / Note',     required: false, fieldType: 'template', group: 'spec',
+    hint: 'Ex: {desc} sau {note}' },
+  // ── Physical / compliance ──────────────────────────────────────────────────
+  { key: 'weight',             label: 'Greutate (kg)',        required: false, fieldType: 'select', group: 'physical' },
+  { key: 'max_load',           label: 'Sarcină max (kg)',     required: false, fieldType: 'select', group: 'physical' },
+  { key: 'discontinued',       label: 'Discontinuat (bool)',  required: false, fieldType: 'select', group: 'physical' },
+  { key: 'production_method',  label: 'Metodă fabricație',   required: false, fieldType: 'select', group: 'physical',
+    /* production_me in supplier CSV */ },
+  { key: 'concave_profile',    label: 'Profil concav',        required: false, fieldType: 'select', group: 'physical' },
+  { key: 'cn_code',            label: 'Cod CN / vamal',       required: false, fieldType: 'select', group: 'physical' },
+  { key: 'certificate_url',    label: 'URL certificat TÜV',  required: false, fieldType: 'select', group: 'physical' },
+  { key: 'tuv_max_load',       label: 'Sarcină max TÜV',     required: false, fieldType: 'select', group: 'physical' },
+  // ── Media ──────────────────────────────────────────────────────────────────
+  { key: 'images',         label: 'Imagine 1 (URL)',      required: false, fieldType: 'image',    group: 'media' },
+  { key: 'images_2',       label: 'Imagine 2 (URL)',      required: false, fieldType: 'image',    group: 'media' },
+  { key: 'images_3',       label: 'Imagine 3 (URL)',      required: false, fieldType: 'image',    group: 'media' },
+  { key: 'images_4',       label: 'Imagine 4 (URL)',      required: false, fieldType: 'image',    group: 'media' },
+  { key: 'images_5',       label: 'Imagine 5 (URL)',      required: false, fieldType: 'image',    group: 'media' },
+  { key: 'youtube_link',   label: 'Video YouTube (URL)',  required: false, fieldType: 'select',   group: 'media' },
+  { key: 'model_3d_url',   label: '3D Model (URL HTML)',  required: false, fieldType: 'select',   group: 'media' },
 ];
 
 interface Props {
@@ -88,7 +134,16 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
     auth_method: 'none', api_key: '', token: '', customer_id: '',
     ...initialConfig,
   });
-  const [mappings, setMappings] = useState<FieldMappings>({ ...EMPTY_MAPPINGS, ...initialMappings });
+  const [mappings, setMappings] = useState<FieldMappings>(() => {
+    const im = initialMappings as any;
+    return {
+      ...EMPTY_MAPPINGS,
+      ...im,
+      // Convert arrays back to comma-separated strings for the text inputs
+      brand_filter: Array.isArray(im?.brand_filter) ? im.brand_filter.join(', ') : (im?.brand_filter || ''),
+      model_filter: Array.isArray(im?.model_filter) ? im.model_filter.join(', ') : (im?.model_filter || ''),
+    };
+  });
   const [columns, setColumns] = useState<string[]>([]);
   const [previewRows, setPreviewRows] = useState<Record<string, any>[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -200,18 +255,29 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
     try {
       let id = savedId;
 
+      // Convert comma-separated filter strings → arrays before saving
+      const mappingsToSave = {
+        ...mappings,
+        brand_filter: mappings.brand_filter
+          ? mappings.brand_filter.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        model_filter: mappings.model_filter
+          ? mappings.model_filter.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+      };
+
       if (id) {
         const res = await fetch(`/api/admin/feeds/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappings }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la salvare'); return; }
       } else {
         const res = await fetch('/api/admin/feeds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappings }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la creare'); return; }
         const d = await res.json();
@@ -439,9 +505,16 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
               </p>
             </div>
 
-            <div className="space-y-4">
-              {STANDARD_FIELDS.map(field => {
-                const currentVal = (mappings as any)[field.key] || '';
+            <div className="space-y-6">
+              {(['required', 'spec', 'physical', 'media'] as const).map(group => {
+                const groupFields = STANDARD_FIELDS.filter(f => f.group === group);
+                const groupLabels = { required: 'Câmpuri obligatorii', spec: 'Specificații produs', physical: 'Date fizice & conformitate', media: 'Media' };
+                return (
+                  <div key={group}>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 pb-1 border-b">{groupLabels[group]}</h3>
+                    <div className="space-y-4">
+                      {groupFields.map(field => {
+                        const currentVal = (mappings as any)[field.key] || '';
                 return (
                   <div key={field.key} className="grid grid-cols-[200px_1fr] gap-4 items-start">
                     <div className="pt-2">
@@ -545,9 +618,61 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                         {columns.map(col => <option key={col} value={col}>{col}</option>)}
                       </select>
                     )}
+                      </div>
+                    );
+                  })}
+                    </div>
                   </div>
                 );
               })}
+            </div>
+
+            {/* ── Import Settings ────────────────────────────────────────────── */}
+            <div className="mt-8 pt-6 border-t">
+              <h3 className="font-semibold mb-1">Setări import</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Controlează comportamentul importului — filtrare, tip produs, rotunjire preț.
+              </p>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Tip produs</label>
+                  <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                    value={mappings.product_type}
+                    onChange={e => setMappings(m => ({ ...m, product_type: e.target.value }))}>
+                    <option value="jante">Jante (forțat)</option>
+                    <option value="accesorii">Accesorii (forțat)</option>
+                    {columns.map(col => <option key={col} value={col}>Coloana: {col}</option>)}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">Forțează tipul sau mapează o coloană din feed</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Rotunjire preț</label>
+                  <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                    value={mappings.price_rounding}
+                    onChange={e => setMappings(m => ({ ...m, price_rounding: e.target.value as any }))}>
+                    <option value="none">Fără rotunjire (ex: 1.520,22)</option>
+                    <option value="round">Rotunjire standard (1.520,22 → 1.520)</option>
+                    <option value="ceil">Rotunjire în sus (1.520,22 → 1.521)</option>
+                    <option value="floor">Rotunjire în jos (1.520,60 → 1.520)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Filtrare după brand</label>
+                  <input className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                    placeholder="Ex: Borbet, BBS, OZ (gol = importă toate)"
+                    value={mappings.brand_filter}
+                    onChange={e => setMappings(m => ({ ...m, brand_filter: e.target.value }))} />
+                  <p className="text-xs text-muted-foreground mt-1">Liste separate prin virgulă. Gol = importă toate brandurile</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Filtrare după model</label>
+                  <input className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                    placeholder="Ex: RC201, LNR11 (gol = importă toate)"
+                    value={mappings.model_filter}
+                    onChange={e => setMappings(m => ({ ...m, model_filter: e.target.value }))} />
+                  <p className="text-xs text-muted-foreground mt-1">Liste separate prin virgulă. Gol = importă toate modelele</p>
+                </div>
+              </div>
             </div>
 
             {/* Extra / custom fields section */}

@@ -29,6 +29,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const search = sp(searchParams.search)
   const brands = spArr(searchParams.brand)
+  const models = spArr(searchParams.model)
   const diameters = spArr(searchParams.diameter)
   const widths = spArr(searchParams.width)
   const pcds = spArr(searchParams.pcd)
@@ -38,14 +39,16 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const priceMax = parseInt(sp(searchParams.price_max) || '0')
   const sortBy = sp(searchParams.sort) || 'stock'
 
-  // ── Products query ─────────────────────────────────────────────────────────
+  // ── Products query (jante only) ─────────────────────────────────────────────
   let query = db.from('products')
-    .select('id,slug,part_number,brand,name,price,price_old,price_b2b,stock,stock_incoming,images,diameter,width,pcd,et_offset,center_bore,color,finish', { count: 'exact' })
+    .select('id,slug,part_number,brand,model,name,price,price_old,price_b2b,stock,stock_incoming,images,diameter,width,pcd,et_offset,center_bore,color,finish', { count: 'exact' })
     .eq('is_active', true)
+    .eq('product_type', 'jante')
     .range(from, from + PAGE_SIZE - 1)
 
   if (search) query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,part_number.ilike.%${search}%`)
   if (brands.length) query = query.in('brand', brands)
+  if (models.length) query = query.in('model', models)
   if (diameters.length) query = query.in('diameter', diameters.map(Number))
   if (widths.length) query = query.in('width', widths.map(Number))
   if (pcds.length) query = query.in('pcd', pcds)
@@ -68,8 +71,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   // Single DB round-trip using SELECT DISTINCT — no Supabase row-limit issues.
   // The function applies "exclude self" logic per dimension (see migration 002).
   const { data: opts } = await db.rpc('get_cascading_filter_options', {
-    p_search:    search    || null,
-    p_brands:    brands.length    ? brands             : null,
+    p_search:    search         || null,
+    p_brands:    brands.length    ? brands                : null,
+    p_models:    models.length    ? models                : null,
     p_diameters: diameters.length ? diameters.map(Number) : null,
     p_widths:    widths.length    ? widths.map(Number)    : null,
     p_pcds:      pcds.length      ? pcds                  : null,
@@ -81,6 +85,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const filterOptions = {
     brands:    (opts?.brands    ?? []) as string[],
+    models:    (opts?.models    ?? []) as string[],
     diameters: (opts?.diameters ?? []) as number[],
     widths:    (opts?.widths    ?? []) as number[],
     pcds:      (opts?.pcds      ?? []) as string[],
@@ -91,7 +96,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   }
 
   const totalPages = Math.ceil((count || 0) / PAGE_SIZE)
-  const activeFilterCount = brands.length + diameters.length + widths.length + pcds.length +
+  const activeFilterCount = brands.length + models.length + diameters.length + widths.length + pcds.length +
     colors.length + finishes.length + (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
 
   return (

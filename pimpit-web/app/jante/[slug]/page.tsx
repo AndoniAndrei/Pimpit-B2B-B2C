@@ -6,6 +6,13 @@ import ProductImage from '@/components/catalog/ProductImage'
 
 export const revalidate = 3600 // ISR 1 hour
 
+/** Extract YouTube video ID from watch or share URLs */
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+  return m?.[1] ?? null;
+}
+
 export async function generateStaticParams() {
   // Use a standard client without cookies for build-time static generation
   const supabase = createBrowserClient(
@@ -48,7 +55,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="grid md:grid-cols-2 gap-12">
-        {/* Image Gallery */}
+        {/* Image Gallery + Media */}
         <div className="space-y-4">
           <div className="aspect-square relative bg-muted rounded-lg overflow-hidden">
             <ProductImage
@@ -68,12 +75,42 @@ export default async function ProductPage({ params }: { params: { slug: string }
               ))}
             </div>
           )}
+          {/* YouTube video embed */}
+          {product.youtube_link && (() => {
+            const vid = getYouTubeId(product.youtube_link);
+            return vid ? (
+              <div className="aspect-video rounded-xl overflow-hidden border bg-black">
+                <iframe
+                  src={`https://www.youtube.com/embed/${vid}`}
+                  title="Video produs"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            ) : null;
+          })()}
+          {/* 3D HTML viewer */}
+          {product.model_3d_url && (
+            <div className="aspect-square rounded-xl overflow-hidden border bg-muted">
+              <iframe
+                src={product.model_3d_url}
+                title="Prezentare 3D"
+                sandbox="allow-scripts allow-same-origin"
+                className="w-full h-full"
+              />
+            </div>
+          )}
         </div>
 
         {/* Product Details */}
         <div>
           <h1 className="text-3xl font-bold mb-2">{product.brand} {product.name}</h1>
-          <p className="text-muted-foreground mb-6">Cod: {product.part_number}</p>
+          {product.model && (
+            <p className="text-sm font-medium text-primary mb-1">Model: {product.model}</p>
+          )}
+          <p className="text-muted-foreground mb-2 text-sm">Cod: {product.part_number}</p>
+          {product.ean && <p className="text-xs text-muted-foreground mb-4">EAN: {product.ean}</p>}
           
           <div className="mb-8">
             <PriceDisplay 
@@ -129,6 +166,30 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 <span className="font-medium">{product.finish}</span>
               </div>
             )}
+            {product.weight != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Greutate</span>
+                <span className="font-medium">{product.weight} kg</span>
+              </div>
+            )}
+            {product.max_load != null && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Sarcină maximă</span>
+                <span className="font-medium">{product.max_load} kg</span>
+              </div>
+            )}
+            {product.production_method && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Metodă fabricație</span>
+                <span className="font-medium">{product.production_method}</span>
+              </div>
+            )}
+            {product.concave_profile && (
+              <div className="flex justify-between py-2">
+                <span className="text-muted-foreground">Profil concav</span>
+                <span className="font-medium">{product.concave_profile}</span>
+              </div>
+            )}
             {/* Custom fields from import mapping */}
             {product.custom_fields && Object.entries(product.custom_fields as Record<string, string>).map(([label, value]) =>
               value ? (
@@ -145,6 +206,19 @@ export default async function ProductPage({ params }: { params: { slug: string }
               </span>
             </div>
           </div>
+          {/* Description */}
+          {product.description && (
+            <div className="mt-6 p-4 bg-muted/50 rounded-xl text-sm text-muted-foreground leading-relaxed">
+              {product.description}
+            </div>
+          )}
+          {/* TÜV certificate link */}
+          {product.certificate_url && (
+            <a href={product.certificate_url} target="_blank" rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-2 text-xs text-primary hover:underline">
+              📄 Certificat TÜV
+            </a>
+          )}
 
           <button 
             disabled={product.stock === 0}
