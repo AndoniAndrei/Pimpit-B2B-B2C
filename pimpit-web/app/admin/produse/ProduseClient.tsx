@@ -42,6 +42,8 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
   const [bulkValue, setBulkValue] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
   const [msg, setMsg] = useState('')
+  const [deleteAllStep, setDeleteAllStep] = useState<0 | 1 | 2>(0)
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false)
   const limit = 50
 
   const load = useCallback(async () => {
@@ -114,6 +116,20 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
     setSelected(s)
   }
 
+  async function deleteAll() {
+    setDeleteAllLoading(true)
+    const res = await fetch('/api/admin/produse/delete-all', { method: 'DELETE' })
+    const data = await res.json()
+    setDeleteAllLoading(false)
+    setDeleteAllStep(0)
+    if (res.ok) {
+      setMsg(`✓ ${data.deleted} produse șterse`)
+      load()
+    } else {
+      setMsg(`✗ ${data.error}`)
+    }
+  }
+
   const totalPages = Math.ceil(total / limit)
 
   const EditCell = ({ p, field, display }: { p: Product; field: string; display: string }) => {
@@ -162,7 +178,13 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
           <option value="">Toți furnizorii</option>
           {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <span className="ml-auto text-sm text-muted-foreground">{total.toLocaleString()} produse</span>
+        <span className="text-sm text-muted-foreground">{total.toLocaleString()} produse</span>
+        <button
+          onClick={() => setDeleteAllStep(1)}
+          className="ml-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg"
+        >
+          🗑 Șterge toate produsele
+        </button>
       </div>
 
       {/* Bulk action bar */}
@@ -281,6 +303,74 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
           </div>
         )}
       </div>
+      {/* Delete All Modal */}
+      {deleteAllStep > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-red-600 px-8 py-6 text-white">
+              <div className="text-4xl mb-2">⚠️</div>
+              <h2 className="text-2xl font-bold">Atenție! Acțiune ireversibilă</h2>
+            </div>
+
+            {/* Body */}
+            <div className="px-8 py-6 space-y-4">
+              <p className="text-gray-800 text-base leading-relaxed">
+                Ești pe cale să ștergi <strong className="text-red-600">TOATE produsele</strong> din baza de date.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 space-y-1">
+                <p>• <strong>{total.toLocaleString()} produse</strong> vor fi șterse permanent</p>
+                <p>• Această acțiune <strong>nu poate fi anulată</strong></p>
+                <p>• Toate datele asociate (prețuri, stocuri, imagini) vor fi pierdute</p>
+              </div>
+
+              {deleteAllStep === 1 && (
+                <p className="text-gray-600 text-sm font-medium">
+                  Apasă <strong>Confirmă prima oară</strong> pentru a continua.
+                </p>
+              )}
+              {deleteAllStep === 2 && (
+                <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                  <p className="text-yellow-900 text-sm font-bold">
+                    Ultima confirmare — ești absolut sigur?
+                  </p>
+                  <p className="text-yellow-800 text-sm mt-1">
+                    Apasă <strong>Da, șterge tot</strong> pentru a executa ștergerea definitivă.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-5 bg-gray-50 border-t flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteAllStep(0)}
+                disabled={deleteAllLoading}
+                className="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+              >
+                Anulează
+              </button>
+              {deleteAllStep === 1 && (
+                <button
+                  onClick={() => setDeleteAllStep(2)}
+                  className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-bold"
+                >
+                  Confirmă prima oară
+                </button>
+              )}
+              {deleteAllStep === 2 && (
+                <button
+                  onClick={deleteAll}
+                  disabled={deleteAllLoading}
+                  className="px-5 py-2.5 bg-red-700 hover:bg-red-800 text-white rounded-lg text-sm font-bold disabled:opacity-50"
+                >
+                  {deleteAllLoading ? 'Se șterge...' : 'Da, șterge tot'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
