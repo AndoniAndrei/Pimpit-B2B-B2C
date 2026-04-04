@@ -17,46 +17,7 @@ function spArr(val: string | string[] | undefined): string[] {
   return Array.isArray(val) ? val : [val];
 }
 
-function dedupe<T>(arr: (T | null | undefined)[]): T[] {
-  const seen: string[] = [];
-  return arr.filter((v): v is T => {
-    if (v == null) return false;
-    const k = String(v);
-    if (seen.includes(k)) return false;
-    seen.push(k); return true;
-  });
-}
 
-interface ActiveFilters {
-  search: string;
-  brands: string[];
-  diameters: string[];
-  widths: string[];
-  pcds: string[];
-  colors: string[];
-  finishes: string[];
-  priceMin: number;
-  priceMax: number;
-}
-
-/**
- * Apply active filters to a Supabase query, excluding one dimension.
- * Used for cascading/dependent faceted filters: each filter dimension shows
- * only values that exist given all OTHER active filters.
- */
-function withFilters(query: any, f: ActiveFilters, exclude: string) {
-  if (exclude !== 'search' && f.search)
-    query = query.or(`name.ilike.%${f.search}%,brand.ilike.%${f.search}%,part_number.ilike.%${f.search}%`);
-  if (exclude !== 'brand' && f.brands.length) query = query.in('brand', f.brands);
-  if (exclude !== 'diameter' && f.diameters.length) query = query.in('diameter', f.diameters.map(Number));
-  if (exclude !== 'width' && f.widths.length) query = query.in('width', f.widths.map(Number));
-  if (exclude !== 'pcd' && f.pcds.length) query = query.in('pcd', f.pcds);
-  if (exclude !== 'color' && f.colors.length) query = query.in('color', f.colors);
-  if (exclude !== 'finish' && f.finishes.length) query = query.in('finish', f.finishes);
-  if (exclude !== 'price' && f.priceMin) query = query.gte('price', f.priceMin);
-  if (exclude !== 'price' && f.priceMax) query = query.lte('price', f.priceMax);
-  return query;
-}
 
 export default async function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
   // Use anon client — public products are readable via RLS policy
@@ -103,31 +64,30 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   // ── Filter options (cascading/dependent faceted search) ───────────────────
   // Each dimension shows only values that exist given ALL OTHER active filters.
   // e.g. selecting diameter=20" makes PCD filter only show PCDs available on 20" rims.
-  const af: ActiveFilters = { search, brands, diameters, widths, pcds, colors, finishes, priceMin, priceMax };
-
-  const base = () => db.from('products').eq('is_active', true);
-
-  const [brandsRes, diamsRes, widthsRes, pcdsRes, colorsRes, finishesRes, minPriceRes, maxPriceRes] = await Promise.all([
-    withFilters(base().select('brand').not('brand', 'is', null), af, 'brand').order('brand'),
-    withFilters(base().select('diameter').not('diameter', 'is', null), af, 'diameter').order('diameter'),
-    withFilters(base().select('width').not('width', 'is', null), af, 'width').order('width'),
-    withFilters(base().select('pcd').not('pcd', 'is', null), af, 'pcd').order('pcd'),
-    withFilters(base().select('color').not('color', 'is', null), af, 'color').order('color'),
-    withFilters(base().select('finish').not('finish', 'is', null), af, 'finish').order('finish'),
-    // Price range is always global (not cascading) to show full price extent
-    db.from('products').select('price').eq('is_active', true).order('price', { ascending: true }).limit(1),
-    db.from('products').select('price').eq('is_active', true).order('price', { ascending: false }).limit(1),
-  ])
+  // ── Filter options via PostgreSQL RPC (cascading faceted search) ─────────────
+  // Single DB round-trip using SELECT DISTINCT — no Supabase row-limit issues.
+  // The function applies "exclude self" logic per dimension (see migration 002).
+  const { data: opts } = await db.rpc('get_cascading_filter_options', {
+    p_search:    search    || null,
+    p_brands:    brands.length    ? brands             : null,
+    p_diameters: diameters.length ? diameters.map(Number) : null,
+    p_widths:    widths.length    ? widths.map(Number)    : null,
+    p_pcds:      pcds.length      ? pcds                  : null,
+    p_colors:    colors.length    ? colors                : null,
+    p_finishes:  finishes.length  ? finishes              : null,
+    p_price_min: priceMin  || null,
+    p_price_max: priceMax  || null,
+  })
 
   const filterOptions = {
-    brands:   dedupe<string>(brandsRes.data?.map(r => r.brand) ?? []),
-    diameters: dedupe<number>(diamsRes.data?.map(r => r.diameter) ?? []),
-    widths:   dedupe<number>(widthsRes.data?.map(r => r.width) ?? []),
-    pcds:     dedupe<string>(pcdsRes.data?.map(r => r.pcd) ?? []),
-    colors:   dedupe<string>(colorsRes.data?.map(r => r.color) ?? []),
-    finishes: dedupe<string>(finishesRes.data?.map(r => r.finish) ?? []),
-    priceMin: Math.floor(minPriceRes.data?.[0]?.price ?? 0),
-    priceMax: Math.ceil(maxPriceRes.data?.[0]?.price ?? 99999),
+    brands:    (opts?.brands    ?? []) as string[],
+    diameters: (opts?.diameters ?? []) as number[],
+    widths:    (opts?.widths    ?? []) as number[],
+    pcds:      (opts?.pcds      ?? []) as string[],
+    colors:    (opts?.colors    ?? []) as string[],
+    finishes:  (opts?.finishes  ?? []) as string[],
+    priceMin:  Math.floor(opts?.price_min ?? 0),
+    priceMax:  Math.ceil(opts?.price_max  ?? 99999),
   }
 
   const totalPages = Math.ceil((count || 0) / PAGE_SIZE)
