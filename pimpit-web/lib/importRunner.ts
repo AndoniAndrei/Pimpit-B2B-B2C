@@ -44,7 +44,8 @@ function deduplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
   for (const p of products) {
     const key = `${p.partNumber.toLowerCase()}|${p.brand.toLowerCase()}`;
     const existing = map.get(key);
-    if (!existing || p.calculatedPrice < existing.calculatedPrice) {
+    // Keep the row with the highest valid price — avoids data-error rows with near-zero prices winning
+    if (!existing || (!p.priceIsZero && p.calculatedPrice > existing.calculatedPrice)) {
       map.set(key, p);
     }
   }

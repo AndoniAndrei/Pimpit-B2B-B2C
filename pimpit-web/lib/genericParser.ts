@@ -119,12 +119,14 @@ export interface ParsedProduct {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getStr(row: Record<string, any>, col?: string): string | undefined {
+function getStr(row: Record<string, any>, col?: string, maxLen?: number): string | undefined {
   if (!col) return undefined;
   const v = row[col];
   if (v === undefined || v === null) return undefined;
-  const s = String(v).trim();
-  return s || undefined;
+  let s = String(v).trim();
+  if (!s) return undefined;
+  if (maxLen && s.length > maxLen) s = s.slice(0, maxLen);
+  return s;
 }
 
 function getNum(row: Record<string, any>, col?: string): number | undefined {
@@ -279,9 +281,12 @@ export function parseRow(
     diameter:   clampNum(getNum(row, mappings.diameter),   4),
     width:      clampNum(getNum(row, mappings.width),       4),
     widthRear:  clampNum(getNum(row, mappings.width_rear),  4),
-    pcd: mappings.pcd?.includes('{')
-      ? resolveTemplate(mappings.pcd, row) || undefined
-      : getStr(row, mappings.pcd),
+    pcd: (() => {
+      const raw = mappings.pcd?.includes('{')
+        ? resolveTemplate(mappings.pcd, row) || undefined
+        : getStr(row, mappings.pcd);
+      return raw ? raw.slice(0, 100) : undefined;
+    })(),
     etOffset:   clampNum(getNum(row, mappings.et_offset),   5),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),
     images,
