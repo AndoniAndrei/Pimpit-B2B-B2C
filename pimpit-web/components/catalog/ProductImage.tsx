@@ -50,6 +50,7 @@ export default function ProductImage({
     if (stage === 'direct') {
       setStage('proxy');
     } else {
+      console.warn('[ProductImage] failed to load:', imgSrc);
       setStage('broken');
     }
   };
