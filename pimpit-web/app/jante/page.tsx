@@ -102,8 +102,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Header bar */}
-      <div className="bg-white border-b">
+      {/* Sticky header bar */}
+      <div className="bg-white border-b sticky top-16 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <Suspense fallback={
             <div className="flex items-center justify-between">

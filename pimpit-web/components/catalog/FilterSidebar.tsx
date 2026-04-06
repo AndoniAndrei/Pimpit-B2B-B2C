@@ -17,7 +17,6 @@ interface FilterOptions {
 
 interface Props {
   options: FilterOptions;
-  onClose?: () => void;
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -43,12 +42,11 @@ function FilterSection({ title, children, defaultOpen = true }: { title: string;
   );
 }
 
-export default function FilterSidebar({ options, onClose }: Props) {
+export default function FilterSidebar({ options }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const getParam = (key: string) => searchParams.get(key) || '';
   const getParamArr = (key: string) => searchParams.getAll(key);
 
   const updateFilter = useCallback((key: string, value: string, multi = false) => {
@@ -63,27 +61,27 @@ export default function FilterSidebar({ options, onClose }: Props) {
         params.append(key, value);
       }
     } else {
-      if (params.get(key) === value) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
+      if (params.get(key) === value) params.delete(key);
+      else params.set(key, value);
     }
     router.push(`${pathname}?${params.toString()}`);
-    onClose?.();
-  }, [searchParams, router, pathname, onClose]);
+    // NO auto-close — user controls when to dismiss
+  }, [searchParams, router, pathname]);
 
   const clearAll = () => router.push(pathname);
 
-  const priceMin = parseInt(getParam('price_min') || '0');
-  const priceMax = parseInt(getParam('price_max') || String(options.priceMax));
-  const activeBrands = getParamArr('brand');
-  const activeModels = getParamArr('model');
+  const priceMin = parseInt(searchParams.get('price_min') || '0');
+  const priceMax = parseInt(searchParams.get('price_max') || String(options.priceMax));
+  const activeBrands    = getParamArr('brand');
+  const activeModels    = getParamArr('model');
   const activeDiameters = getParamArr('diameter');
-  const activeWidths = getParamArr('width');
-  const activePcds = getParamArr('pcd');
-
+  const activeWidths    = getParamArr('width');
+  const activePcds      = getParamArr('pcd');
   const hasActiveFilters = searchParams.toString().length > 0;
+
+  // Split PCDs: single bolt vs multi-bolt (contains "/")
+  const singlePcds = options.pcds.filter(p => !p.includes('/'));
+  const multiPcds  = options.pcds.filter(p => p.includes('/'));
 
   return (
     <div className="w-full">
@@ -115,8 +113,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
             {options.brands.map(b => (
               <label key={b} className="flex items-center gap-2.5 cursor-pointer group">
-                <input type="checkbox"
-                  checked={activeBrands.includes(b)}
+                <input type="checkbox" checked={activeBrands.includes(b)}
                   onChange={() => updateFilter('brand', b, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{b}</span>
@@ -132,8 +129,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
             {options.models.map(m => (
               <label key={m} className="flex items-center gap-2.5 cursor-pointer group">
-                <input type="checkbox"
-                  checked={activeModels.includes(m)}
+                <input type="checkbox" checked={activeModels.includes(m)}
                   onChange={() => updateFilter('model', m, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{m}</span>
@@ -148,8 +144,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
         <FilterSection title="Diametru (inch)">
           <div className="flex flex-wrap gap-2">
             {options.diameters.map(d => (
-              <button key={d}
-                onClick={() => updateFilter('diameter', String(d), true)}
+              <button key={d} onClick={() => updateFilter('diameter', String(d), true)}
                 className={`px-3 py-1.5 text-sm rounded-lg border font-medium transition-colors
                   ${activeDiameters.includes(String(d))
                     ? 'bg-primary text-primary-foreground border-primary'
@@ -166,8 +161,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
         <FilterSection title="Lățime" defaultOpen={false}>
           <div className="flex flex-wrap gap-2">
             {options.widths.map(w => (
-              <button key={w}
-                onClick={() => updateFilter('width', String(w), true)}
+              <button key={w} onClick={() => updateFilter('width', String(w), true)}
                 className={`px-3 py-1.5 text-sm rounded-lg border font-medium transition-colors
                   ${activeWidths.includes(String(w))
                     ? 'bg-primary text-primary-foreground border-primary'
@@ -179,19 +173,35 @@ export default function FilterSidebar({ options, onClose }: Props) {
         </FilterSection>
       )}
 
-      {/* PCD */}
+      {/* PCD — single bolt + multi-bolt grouped separately */}
       {options.pcds.length > 0 && (
-        <FilterSection title="PCD" defaultOpen={false}>
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-            {options.pcds.map(p => (
+        <FilterSection title="Prindere (PCD)" defaultOpen={false}>
+          <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+            {singlePcds.map(p => (
               <label key={p} className="flex items-center gap-2.5 cursor-pointer group">
-                <input type="checkbox"
-                  checked={activePcds.includes(p)}
+                <input type="checkbox" checked={activePcds.includes(p)}
                   onChange={() => updateFilter('pcd', p, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{p}</span>
               </label>
             ))}
+            {multiPcds.length > 0 && (
+              <>
+                <div className="pt-2 pb-1">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Prindere custom (multi-bolt)
+                  </span>
+                </div>
+                {multiPcds.map(p => (
+                  <label key={p} className="flex items-center gap-2.5 cursor-pointer group">
+                    <input type="checkbox" checked={activePcds.includes(p)}
+                      onChange={() => updateFilter('pcd', p, true)}
+                      className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
+                    <span className="text-sm group-hover:text-primary transition-colors">{p}</span>
+                  </label>
+                ))}
+              </>
+            )}
           </div>
         </FilterSection>
       )}
@@ -199,27 +209,25 @@ export default function FilterSidebar({ options, onClose }: Props) {
       {/* Price range */}
       {options.priceMax > 0 && (
         <FilterSection title="Preț (RON)" defaultOpen={false}>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <input type="number"
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
-                placeholder={`Min (${options.priceMin.toLocaleString()})`}
-                defaultValue={priceMin || ''}
-                onBlur={e => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (e.target.value) params.set('price_min', e.target.value); else params.delete('price_min');
-                  router.push(`${pathname}?${params.toString()}`);
-                }} />
-              <input type="number"
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
-                placeholder={`Max (${options.priceMax.toLocaleString()})`}
-                defaultValue={priceMax !== options.priceMax ? priceMax : ''}
-                onBlur={e => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (e.target.value) params.set('price_max', e.target.value); else params.delete('price_max');
-                  router.push(`${pathname}?${params.toString()}`);
-                }} />
-            </div>
+          <div className="flex gap-2">
+            <input type="number"
+              className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+              placeholder={`Min (${options.priceMin.toLocaleString()})`}
+              defaultValue={priceMin || ''}
+              onBlur={e => {
+                const params = new URLSearchParams(searchParams.toString());
+                if (e.target.value) params.set('price_min', e.target.value); else params.delete('price_min');
+                router.push(`${pathname}?${params.toString()}`);
+              }} />
+            <input type="number"
+              className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+              placeholder={`Max (${options.priceMax.toLocaleString()})`}
+              defaultValue={priceMax !== options.priceMax ? priceMax : ''}
+              onBlur={e => {
+                const params = new URLSearchParams(searchParams.toString());
+                if (e.target.value) params.set('price_max', e.target.value); else params.delete('price_max');
+                router.push(`${pathname}?${params.toString()}`);
+              }} />
           </div>
         </FilterSection>
       )}
@@ -230,8 +238,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {options.colors.map(c => (
               <label key={c} className="flex items-center gap-2.5 cursor-pointer group">
-                <input type="checkbox"
-                  checked={getParamArr('color').includes(c)}
+                <input type="checkbox" checked={getParamArr('color').includes(c)}
                   onChange={() => updateFilter('color', c, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{c}</span>
@@ -247,8 +254,7 @@ export default function FilterSidebar({ options, onClose }: Props) {
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {options.finishes.map(f => (
               <label key={f} className="flex items-center gap-2.5 cursor-pointer group">
-                <input type="checkbox"
-                  checked={getParamArr('finish').includes(f)}
+                <input type="checkbox" checked={getParamArr('finish').includes(f)}
                   onChange={() => updateFilter('finish', f, true)}
                   className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
                 <span className="text-sm group-hover:text-primary transition-colors">{f}</span>

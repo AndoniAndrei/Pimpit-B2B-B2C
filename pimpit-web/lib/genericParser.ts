@@ -285,7 +285,9 @@ export function parseRow(
       const raw = mappings.pcd?.includes('{')
         ? resolveTemplate(mappings.pcd, row) || undefined
         : getStr(row, mappings.pcd);
-      return raw ? raw.slice(0, 100) : undefined;
+      if (!raw) return undefined;
+      // Normalize: uppercase, collapse spaces around separator (e.g. "5 x 112" → "5X112")
+      return raw.trim().toUpperCase().replace(/\s*[X]\s*/g, 'X').slice(0, 100);
     })(),
     etOffset:   clampNum(getNum(row, mappings.et_offset),   5),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),
