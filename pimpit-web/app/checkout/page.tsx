@@ -12,7 +12,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
-    
+
     const formData = new FormData(e.currentTarget)
     const address = {
       street: formData.get('street'),
@@ -50,12 +50,12 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Finalizare Comandă</h1>
-      <form onSubmit={handleSubmit} className="space-y-6 bg-card border p-6 rounded-xl">
+    <div className="container mx-auto py-8 px-4 max-w-2xl">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-8">Finalizare Comandă</h1>
+      <form onSubmit={handleSubmit} className="space-y-6 bg-card border p-4 sm:p-6 rounded-xl">
         <div className="space-y-4">
           <h2 className="font-bold text-lg border-b pb-2">Date de contact</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Nume complet</label>
               <input name="name" required className="w-full border rounded-md px-3 py-2" />
@@ -64,7 +64,7 @@ export default function CheckoutPage() {
               <label className="block text-sm mb-1">Telefon</label>
               <input name="phone" required className="w-full border rounded-md px-3 py-2" />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm mb-1">Email</label>
               <input name="email" type="email" required className="w-full border rounded-md px-3 py-2" />
             </div>
@@ -73,8 +73,8 @@ export default function CheckoutPage() {
 
         <div className="space-y-4">
           <h2 className="font-bold text-lg border-b pb-2">Adresă de livrare</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
               <label className="block text-sm mb-1">Stradă și număr</label>
               <input name="street" required className="w-full border rounded-md px-3 py-2" />
             </div>
@@ -93,10 +93,10 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
-          className="w-full bg-primary text-primary-foreground py-4 rounded-md font-bold text-lg hover:bg-primary/90 disabled:opacity-50 mt-8"
+          className="w-full bg-primary text-primary-foreground py-4 rounded-md font-bold text-lg hover:bg-primary/90 disabled:opacity-50 mt-4"
         >
           {loading ? 'Se procesează...' : 'Plasează Comanda'}
         </button>

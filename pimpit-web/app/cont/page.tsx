@@ -13,10 +13,10 @@ export default async function AccountPage() {
   const { data: orders } = await supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <h1 className="text-3xl font-bold mb-8">Contul meu</h1>
-      
-      <div className="grid md:grid-cols-3 gap-8">
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Contul meu</h1>
+
+      <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-card border rounded-xl p-6">
           <h2 className="font-bold text-lg mb-4">Date personale</h2>
           <div className="space-y-2 text-sm">

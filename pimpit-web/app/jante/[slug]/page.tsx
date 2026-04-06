@@ -53,8 +53,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
   }
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <div className="grid md:grid-cols-2 gap-12">
+    <div className="container mx-auto py-6 sm:py-12 px-4">
+      <div className="grid md:grid-cols-2 gap-6 md:gap-12">
         {/* Image Gallery + Media */}
         <div className="space-y-4">
           <div className="aspect-square relative bg-muted rounded-lg overflow-hidden">
@@ -105,7 +105,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
         {/* Product Details */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">{product.brand} {product.name}</h1>
+          <h1 className="text-xl sm:text-3xl font-bold mb-2">{product.brand} {product.name}</h1>
           {product.model && (
             <p className="text-sm font-medium text-primary mb-1">Model: {product.model}</p>
           )}

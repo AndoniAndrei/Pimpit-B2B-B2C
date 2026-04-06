@@ -77,11 +77,12 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         </div>
       </div>
 
-      {/* Add to cart bar — visible on hover */}
+      {/* Add to cart bar — always visible on mobile, hover on desktop */}
       <div className="px-4 pb-4">
-        <div className="w-full bg-primary text-primary-foreground text-sm font-semibold py-2.5 rounded-xl text-center
-          opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-200
-          disabled:opacity-40 cursor-pointer select-none">
+        <div className={`w-full bg-primary text-primary-foreground text-sm font-semibold py-2.5 rounded-xl text-center
+          transition-all duration-200 cursor-pointer select-none
+          md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0
+          ${product.stock === 0 ? 'opacity-40' : ''}`}>
           {product.stock === 0 ? 'Indisponibil' : 'Adaugă în coș'}
         </div>
       </div>

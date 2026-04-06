@@ -17,6 +17,7 @@ interface FilterOptions {
 
 interface Props {
   options: FilterOptions;
+  onClose?: () => void;
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -42,7 +43,7 @@ function FilterSection({ title, children, defaultOpen = true }: { title: string;
   );
 }
 
-export default function FilterSidebar({ options }: Props) {
+export default function FilterSidebar({ options, onClose }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,7 +53,7 @@ export default function FilterSidebar({ options }: Props) {
 
   const updateFilter = useCallback((key: string, value: string, multi = false) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('page'); // reset pagination on filter change
+    params.delete('page');
     if (multi) {
       const existing = params.getAll(key);
       if (existing.includes(value)) {
@@ -69,7 +70,8 @@ export default function FilterSidebar({ options }: Props) {
       }
     }
     router.push(`${pathname}?${params.toString()}`);
-  }, [searchParams, router, pathname]);
+    onClose?.();
+  }, [searchParams, router, pathname, onClose]);
 
   const clearAll = () => router.push(pathname);
 

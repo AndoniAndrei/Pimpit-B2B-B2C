@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/catalog/ProductCard'
 import FilterSidebar from '@/components/catalog/FilterSidebar'
+import MobileFilters from '@/components/catalog/MobileFilters'
 import CatalogControls from '@/components/catalog/CatalogControls'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -114,6 +115,11 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
               initialSort={sortBy}
               totalCount={count ?? 0}
               activeFilterCount={activeFilterCount}
+              mobileFilterSlot={
+                <div className="lg:hidden">
+                  <MobileFilters options={filterOptions} activeCount={activeFilterCount} />
+                </div>
+              }
             />
           </Suspense>
         </div>
