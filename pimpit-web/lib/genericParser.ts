@@ -1,5 +1,6 @@
 import { evaluateFormula } from './formulaEvaluator';
 import { parseSmartNumber } from './priceParser';
+import { normalizeAndJoinPcds } from './pcdUtils';
 
 /**
  * Resolve a template string with {column_name} variable substitution.
@@ -286,8 +287,7 @@ export function parseRow(
         ? resolveTemplate(mappings.pcd, row) || undefined
         : getStr(row, mappings.pcd);
       if (!raw) return undefined;
-      // Normalize: uppercase, collapse spaces around separator (e.g. "5 x 112" → "5X112")
-      return raw.trim().toUpperCase().replace(/\s*[X]\s*/g, 'X').slice(0, 100);
+      return normalizeAndJoinPcds(raw) ?? undefined;
     })(),
     etOffset:   clampNum(getNum(row, mappings.et_offset),   5),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),

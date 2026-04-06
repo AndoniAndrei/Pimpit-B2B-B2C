@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { splitAndNormalizePcds } from '@/lib/pcdUtils';
 
 interface FilterOptions {
   brands: string[];
@@ -79,9 +80,17 @@ export default function FilterSidebar({ options }: Props) {
   const activePcds      = getParamArr('pcd');
   const hasActiveFilters = searchParams.toString().length > 0;
 
-  // Split PCDs: single bolt vs multi-bolt (contains "/")
-  const singlePcds = options.pcds.filter(p => !p.includes('/'));
-  const multiPcds  = options.pcds.filter(p => p.includes('/'));
+  // Explode all PCD values (including multi-bolt) into individual normalized PCDs,
+  // deduplicate, and sort — so the filter always shows clean individual options.
+  const individualPcds = useMemo(() => {
+    const seen = new Set<string>();
+    for (const raw of options.pcds) {
+      for (const pcd of splitAndNormalizePcds(raw)) {
+        seen.add(pcd);
+      }
+    }
+    return Array.from(seen).sort();
+  }, [options.pcds]);
 
   return (
     <div className="w-full">
@@ -173,11 +182,11 @@ export default function FilterSidebar({ options }: Props) {
         </FilterSection>
       )}
 
-      {/* PCD — single bolt + multi-bolt grouped separately */}
-      {options.pcds.length > 0 && (
+      {/* PCD — all individual PCDs, deduped (multi-bolt products contribute each bolt separately) */}
+      {individualPcds.length > 0 && (
         <FilterSection title="Prindere (PCD)" defaultOpen={false}>
           <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
-            {singlePcds.map(p => (
+            {individualPcds.map(p => (
               <label key={p} className="flex items-center gap-2.5 cursor-pointer group">
                 <input type="checkbox" checked={activePcds.includes(p)}
                   onChange={() => updateFilter('pcd', p, true)}
@@ -185,23 +194,6 @@ export default function FilterSidebar({ options }: Props) {
                 <span className="text-sm group-hover:text-primary transition-colors">{p}</span>
               </label>
             ))}
-            {multiPcds.length > 0 && (
-              <>
-                <div className="pt-2 pb-1">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Prindere custom (multi-bolt)
-                  </span>
-                </div>
-                {multiPcds.map(p => (
-                  <label key={p} className="flex items-center gap-2.5 cursor-pointer group">
-                    <input type="checkbox" checked={activePcds.includes(p)}
-                      onChange={() => updateFilter('pcd', p, true)}
-                      className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
-                    <span className="text-sm group-hover:text-primary transition-colors">{p}</span>
-                  </label>
-                ))}
-              </>
-            )}
           </div>
         </FilterSection>
       )}

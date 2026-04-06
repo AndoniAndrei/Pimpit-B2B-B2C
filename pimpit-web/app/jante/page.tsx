@@ -3,6 +3,7 @@ import ProductCard from '@/components/catalog/ProductCard'
 import FilterSidebar from '@/components/catalog/FilterSidebar'
 import MobileFilters from '@/components/catalog/MobileFilters'
 import CatalogControls from '@/components/catalog/CatalogControls'
+import { buildPcdOrClause } from '@/lib/pcdUtils'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -52,7 +53,12 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   if (models.length) query = query.in('model', models)
   if (diameters.length) query = query.in('diameter', diameters.map(Number))
   if (widths.length) query = query.in('width', widths.map(Number))
-  if (pcds.length) query = query.in('pcd', pcds)
+  // PCD contains-matching: a selected individual PCD matches both single-bolt products
+  // (pcd = '5X112') and multi-bolt products where '5X112' is one of the slash-separated values.
+  if (pcds.length) {
+    const pcdFilter = pcds.map(buildPcdOrClause).join(',');
+    query = query.or(pcdFilter);
+  }
   if (colors.length) query = query.in('color', colors)
   if (finishes.length) query = query.in('finish', finishes)
   if (priceMin) query = query.gte('price', priceMin)
