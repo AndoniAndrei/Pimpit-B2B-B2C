@@ -28,6 +28,7 @@ export function normalizeSinglePcd(raw: string): string {
     .trim()
     .replace(/(\d),(\d)/g, '$1.$2')  // decimal comma → dot (only between digits)
     .toUpperCase()
+    .replace(/^(\d)\.([\d]{2,})/, '$1X$2') // "5.112" → "5X112" (dot as bolt-circle separator)
     .replace(/\s*X\s*/g, 'X');       // collapse spaces around X
 }
 
