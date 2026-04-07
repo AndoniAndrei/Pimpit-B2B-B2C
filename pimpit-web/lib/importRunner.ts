@@ -280,6 +280,44 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     .update({ last_sync_at: new Date().toISOString(), last_product_count: upserted })
     .eq('id', supplierId);
 
+  // ── ZIP-based image import (e.g. MB Design) ──────────────────────────────
+  const withZipImages = deduplicated.filter(p => p.zipImageUrl && p.zipImageIds?.length);
+  if (withZipImages.length > 0) {
+    try {
+      const { processProductImages, clearZipCache } = await import('./imageImporter');
+      const specs = withZipImages.map(p => ({
+        partNumber: p.partNumber,
+        brand: p.brand,
+        zipUrl: p.zipImageUrl!,
+        imageIds: p.zipImageIds!,
+      }));
+
+      const imageResults = await processProductImages(db, specs);
+      clearZipCache();
+
+      // Batch update products with their storage URLs
+      const toUpdate = imageResults.filter(r => r.urls.length > 0);
+      for (let i = 0; i < toUpdate.length; i += 50) {
+        const batch = toUpdate.slice(i, i + 50);
+        for (const r of batch) {
+          await db
+            .from('products')
+            .update({ images: r.urls })
+            .eq('part_number', r.partNumber)
+            .eq('brand', r.brand);
+        }
+      }
+
+      const imgErrors = imageResults.flatMap(r => r.errors);
+      if (imgErrors.length > 0) {
+        warnings.push(`Imagini: ${imgErrors.length} erori (ex: ${imgErrors.slice(0, 2).join('; ')})`);
+      }
+      warnings.push(`Imagini procesate: ${toUpdate.length}/${withZipImages.length} produse`);
+    } catch (e: any) {
+      warnings.push(`Imagini ZIP: ${e.message}`);
+    }
+  }
+
   // Refresh materialized view (non-critical)
   try {
     await db.rpc('refresh_filter_options');

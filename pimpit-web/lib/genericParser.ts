@@ -51,7 +51,7 @@ export interface FieldMappings {
   // Identification
   ean?: string;
 
-  // Media
+  // Media — direct URL columns
   images?: string;
   images_2?: string;
   images_3?: string;
@@ -59,6 +59,13 @@ export interface FieldMappings {
   images_5?: string;
   youtube_link?: string;
   model_3d_url?: string;
+
+  // Media — ZIP-based (e.g. MB Design): zip URL column + up to 4 image ID columns
+  image_zip_url?: string;   // column with the ZIP download URL
+  image_zip_id_1?: string;  // column with image ID #1 (BildNr-Ansicht)
+  image_zip_id_2?: string;  // column with image ID #2
+  image_zip_id_3?: string;  // column with image ID #3
+  image_zip_id_4?: string;  // column with image ID #4
 
   // Physical / spec fields
   description?: string;
@@ -102,6 +109,8 @@ export interface ParsedProduct {
   images: string[];
   youtubeLink?: string;
   model3dUrl?: string;
+  zipImageUrl?: string;
+  zipImageIds?: (string | number)[];
   color?: string;
   finish?: string;
   weight?: number;
@@ -312,6 +321,18 @@ export function parseRow(
     images,
     youtubeLink:    getStr(row, mappings.youtube_link),
     model3dUrl:     getStr(row, mappings.model_3d_url),
+    zipImageUrl: getStr(row, mappings.image_zip_url),
+    zipImageIds: (() => {
+      const ids = [
+        mappings.image_zip_id_1,
+        mappings.image_zip_id_2,
+        mappings.image_zip_id_3,
+        mappings.image_zip_id_4,
+      ]
+        .map(col => getStr(row, col))
+        .filter((v): v is string => !!v && v !== '0');
+      return ids.length ? ids : undefined;
+    })(),
     color: mappings.color?.includes('{')
       ? resolveTemplate(mappings.color, row) || undefined
       : getStr(row, mappings.color),

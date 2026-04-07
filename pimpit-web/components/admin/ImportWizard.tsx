@@ -35,9 +35,12 @@ interface FieldMappings {
   weight: string; max_load: string; discontinued: string;
   production_method: string; concave_profile: string; cn_code: string;
   certificate_url: string; tuv_max_load: string;
-  // Media
+  // Media — direct URLs
   images: string; images_2: string; images_3: string; images_4: string; images_5: string;
   youtube_link: string; model_3d_url: string;
+  // Media — ZIP-based (e.g. MB Design)
+  image_zip_url: string;
+  image_zip_id_1: string; image_zip_id_2: string; image_zip_id_3: string; image_zip_id_4: string;
   // Import behaviour (not column names)
   product_type: string;               // 'jante' | 'accesorii' | column name
   price_rounding: 'none' | 'round' | 'ceil' | 'floor';
@@ -58,6 +61,7 @@ const EMPTY_MAPPINGS: FieldMappings = {
   certificate_url: '', tuv_max_load: '',
   images: '', images_2: '', images_3: '', images_4: '', images_5: '',
   youtube_link: '', model_3d_url: '',
+  image_zip_url: '', image_zip_id_1: '', image_zip_id_2: '', image_zip_id_3: '', image_zip_id_4: '',
   product_type: 'jante', price_rounding: 'none',
   brand_filter: '', model_filter: '',
   extra_fields: [],
@@ -120,6 +124,14 @@ const STANDARD_FIELDS: {
   { key: 'images_5',       label: 'Imagine 5 (URL)',      required: false, fieldType: 'image',    group: 'media' },
   { key: 'youtube_link',   label: 'Video YouTube (URL)',  required: false, fieldType: 'select',   group: 'media' },
   { key: 'model_3d_url',   label: '3D Model (URL HTML)',  required: false, fieldType: 'select',   group: 'media' },
+  // ZIP-based images (MB Design style)
+  { key: 'image_zip_url',   label: 'ZIP imagini (URL coloană)',  required: false, fieldType: 'select', group: 'media',
+    hint: 'Coloana cu link-ul arhivei ZIP cu poze (ex: Bilderlink). Pozele sunt descărcate și stocate automat.' },
+  { key: 'image_zip_id_1',  label: 'ID imagine ZIP #1',          required: false, fieldType: 'select', group: 'media',
+    hint: 'Coloana cu ID-ul pozei #1 din arhivă (ex: BildNr-Ansicht)' },
+  { key: 'image_zip_id_2',  label: 'ID imagine ZIP #2',          required: false, fieldType: 'select', group: 'media' },
+  { key: 'image_zip_id_3',  label: 'ID imagine ZIP #3',          required: false, fieldType: 'select', group: 'media' },
+  { key: 'image_zip_id_4',  label: 'ID imagine ZIP #4',          required: false, fieldType: 'select', group: 'media' },
 ];
 
 interface Props {
