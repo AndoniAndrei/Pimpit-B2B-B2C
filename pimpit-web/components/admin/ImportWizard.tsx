@@ -29,6 +29,7 @@ interface FieldMappings {
   // Wheel spec
   model: string; ean: string; description: string;
   stock: string; stock_incoming: string;
+  size_split: string; // column with "DIAMETERxWIDTH" (fallback when diameter/width missing)
   diameter: string; width: string; pcd: string; et_offset: string; center_bore: string;
   color: string; finish: string;
   weight: string; max_load: string; discontinued: string;
@@ -49,6 +50,7 @@ const EMPTY_MAPPINGS: FieldMappings = {
   part_number: '', brand: '', name: '', price_formula: '',
   model: '', ean: '', description: '',
   stock: '', stock_incoming: '',
+  size_split: '',
   diameter: '', width: '', pcd: '', et_offset: '', center_bore: '',
   color: '', finish: '',
   weight: '', max_load: '', discontinued: '',
@@ -87,8 +89,10 @@ const STANDARD_FIELDS: {
   { key: 'ean',            label: 'EAN / Cod de bare',    required: false, fieldType: 'select',   group: 'spec' },
   { key: 'stock',          label: 'Stoc disponibil',      required: false, fieldType: 'select',   group: 'spec' },
   { key: 'stock_incoming', label: 'Stoc în tranzit',      required: false, fieldType: 'select',   group: 'spec' },
-  { key: 'diameter',       label: 'Diametru / size (inch)', required: false, fieldType: 'select', group: 'spec' },
-  { key: 'width',          label: 'Lățime / width',       required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'size_split',     label: 'Size combinat (diametru × lățime)', required: false, fieldType: 'select', group: 'spec',
+    hint: 'Coloană cu format "20x10.5" — extrage automat diametru și lățime. Lasă gol dacă ai coloane separate.' },
+  { key: 'diameter',       label: 'Diametru (inch)',        required: false, fieldType: 'select', group: 'spec' },
+  { key: 'width',          label: 'Lățime (inch)',          required: false, fieldType: 'select', group: 'spec' },
   { key: 'pcd',            label: 'PCD',                  required: false, fieldType: 'template', group: 'spec',
     hint: 'Ex: {pcd} sau {boli}x{BCD}' },
   { key: 'et_offset',      label: 'ET / Offset',          required: false, fieldType: 'select',   group: 'spec' },

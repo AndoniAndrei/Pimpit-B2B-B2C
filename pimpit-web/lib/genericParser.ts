@@ -37,6 +37,7 @@ export interface FieldMappings {
   diameter?: string;
   width?: string;
   width_rear?: string;
+  size_split?: string;  // column with concatenated "DIAMETERxWIDTH" (e.g. "20x10.5")
   pcd?: string;
   et_offset?: string;
   center_bore?: string;
@@ -279,8 +280,25 @@ export function parseRow(
     stock:         getNum(row, mappings.stock) ?? 0,
     stockIncoming: getNum(row, mappings.stock_incoming) ?? 0,
     // Clamp numerics to avoid PostgreSQL overflow
-    diameter:   clampNum(getNum(row, mappings.diameter),   4),
-    width:      clampNum(getNum(row, mappings.width),       4),
+    // If size_split is mapped, parse "DIAMETERxWIDTH" as fallback for missing diameter/width
+    ...(() => {
+      let diameter = clampNum(getNum(row, mappings.diameter), 4);
+      let width    = clampNum(getNum(row, mappings.width),    4);
+      if (mappings.size_split && (diameter === undefined || width === undefined)) {
+        const raw = getStr(row, mappings.size_split);
+        if (raw) {
+          // Supports separators: x X × (with optional spaces)
+          const parts = raw.replace(/,/g, '.').split(/\s*[xX×]\s*/);
+          if (parts.length >= 2) {
+            const d = parseFloat(parts[0]);
+            const w = parseFloat(parts[1]);
+            if (!isNaN(d) && diameter === undefined) diameter = clampNum(d, 4);
+            if (!isNaN(w) && width    === undefined) width    = clampNum(w, 4);
+          }
+        }
+      }
+      return { diameter, width };
+    })(),
     widthRear:  clampNum(getNum(row, mappings.width_rear),  4),
     pcd: (() => {
       const raw = mappings.pcd?.includes('{')
