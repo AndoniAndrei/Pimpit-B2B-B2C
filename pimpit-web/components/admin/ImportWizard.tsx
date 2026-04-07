@@ -588,19 +588,18 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
               <table className="text-xs w-full">
                 <thead>
                   <tr className="bg-muted/50">
-                    {columns.slice(0, 10).map(col => (
+                    {columns.map(col => (
                       <th key={col} className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap border-r last:border-0">
                         {col}
                       </th>
                     ))}
-                    {columns.length > 10 && <th className="px-3 py-2 text-muted-foreground">+{columns.length - 10}</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {previewRows.slice(0, 3).map((row, i) => (
                     <tr key={i} className="border-t">
-                      {columns.slice(0, 10).map(col => (
-                        <td key={col} className="px-3 py-2 max-w-[150px] truncate border-r last:border-0" title={String(row[col] ?? '')}>
+                      {columns.map(col => (
+                        <td key={col} className="px-3 py-2 max-w-[200px] truncate border-r last:border-0" title={String(row[col] ?? '')}>
                           {String(row[col] ?? '')}
                         </td>
                       ))}
@@ -726,12 +725,22 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
 
                     {/* ── SELECT / IMAGE field ── */}
                     {(field.fieldType === 'select' || field.fieldType === 'image') && (
-                      <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
-                        value={currentVal}
-                        onChange={e => setMappings(m => ({ ...m, [field.key]: e.target.value }))}>
-                        <option value="">— nu mapa —</option>
-                        {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                      </select>
+                      <div className="space-y-1.5">
+                        <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                          value={currentVal}
+                          onChange={e => setMappings(m => ({ ...m, [field.key]: e.target.value }))}>
+                          <option value="">— nu mapa —</option>
+                          {columns.map(col => <option key={col} value={col}>{col}</option>)}
+                        </select>
+                        {currentVal && previewRows[0] && (() => {
+                          const val = String(previewRows[0][currentVal] ?? '');
+                          return val ? (
+                            <p className="text-xs text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">
+                              ✓ Preview: <strong>{val}</strong>
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
                     )}
                       </div>
                     );
