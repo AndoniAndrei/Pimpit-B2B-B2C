@@ -156,6 +156,9 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   const [error, setError] = useState('');
   const [importResult, setImportResult] = useState<any>(null);
   const [savedId, setSavedId] = useState<number | undefined>(supplierId);
+  // File upload mode
+  const [uploadMode, setUploadMode] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   // Track which template field's column picker is open
   const [openPickerFor, setOpenPickerFor] = useState<string | null>(null);
   // Refs for template inputs (to insert text at cursor)
@@ -247,16 +250,25 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   // ── Step 1: fetch preview ─────────────────────────────────────────────────
 
   async function handlePreview() {
-    if (!config.feed_url.trim()) { setError('URL-ul feed-ului este obligatoriu'); return; }
     if (!config.name.trim()) { setError('Denumirea sursei este obligatorie'); return; }
     setLoadingPreview(true);
     setError('');
     try {
-      const res = await fetch('/api/admin/feeds/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
-      });
+      let res: Response;
+      if (uploadMode && uploadedFile) {
+        const fd = new FormData();
+        fd.append('file', uploadedFile);
+        fd.append('format', config.format);
+        fd.append('delimiter', config.delimiter);
+        res = await fetch('/api/admin/feeds/upload-preview', { method: 'POST', body: fd });
+      } else {
+        if (!config.feed_url.trim()) { setError('URL-ul feed-ului este obligatoriu'); setLoadingPreview(false); return; }
+        res = await fetch('/api/admin/feeds/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config),
+        });
+      }
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Eroare la preluarea preview'); return; }
       if (!data.columns?.length) { setError('Feed-ul nu conține coloane detectabile'); return; }
@@ -440,15 +452,59 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1.5">URL feed <span className="text-red-500">*</span></label>
-              <input className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background font-mono"
-                placeholder="https://furnizor.com/products.csv"
-                value={config.feed_url}
-                onChange={e => setConfig(c => ({ ...c, feed_url: e.target.value }))} />
-              <p className="text-xs text-muted-foreground mt-1">
-                Folosește <code className="bg-muted px-1 rounded">{'{API_KEY}'}</code> sau{' '}
-                <code className="bg-muted px-1 rounded">{'{TOKEN}'}</code> în URL pentru substituție automată.
-              </p>
+              {/* URL / Upload toggle */}
+              <div className="flex gap-1 mb-3 bg-muted rounded-lg p-1 w-fit">
+                <button type="button"
+                  onClick={() => setUploadMode(false)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${!uploadMode ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                  URL feed
+                </button>
+                <button type="button"
+                  onClick={() => setUploadMode(true)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${uploadMode ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                  Upload fișier
+                </button>
+              </div>
+
+              {!uploadMode ? (<>
+                <label className="block text-sm font-medium mb-1.5">URL feed <span className="text-red-500">*</span></label>
+                <input className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background font-mono"
+                  placeholder="https://furnizor.com/products.csv"
+                  value={config.feed_url}
+                  onChange={e => setConfig(c => ({ ...c, feed_url: e.target.value }))} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Folosește <code className="bg-muted px-1 rounded">{'{API_KEY}'}</code> sau{' '}
+                  <code className="bg-muted px-1 rounded">{'{TOKEN}'}</code> în URL pentru substituție automată.
+                </p>
+              </>) : (<>
+                <label className="block text-sm font-medium mb-1.5">Fișier CSV / JSON <span className="text-red-500">*</span></label>
+                <div className={`border-2 border-dashed rounded-lg px-4 py-6 text-center cursor-pointer transition-colors ${uploadedFile ? 'border-primary/40 bg-primary/5' : 'border-gray-300 hover:border-primary/40'}`}
+                  onClick={() => document.getElementById('feed-file-input')?.click()}>
+                  {uploadedFile ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-primary">{uploadedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024).toFixed(1)} KB</p>
+                      <button type="button" className="text-xs text-red-500 hover:underline"
+                        onClick={e => { e.stopPropagation(); setUploadedFile(null); }}>
+                        Elimină
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Click pentru a selecta fișierul</p>
+                      <p className="text-xs text-muted-foreground">CSV sau JSON, max 50MB</p>
+                    </div>
+                  )}
+                </div>
+                <input id="feed-file-input" type="file" accept=".csv,.json,.txt" className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) setUploadedFile(f);
+                  }} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Util pentru furnizori care blochează accesul din server. Descarcă fișierul manual din browser, apoi uploadează-l aici.
+                </p>
+              </>)}
             </div>
 
             <div>
