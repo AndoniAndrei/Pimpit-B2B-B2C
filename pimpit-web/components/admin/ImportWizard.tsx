@@ -157,6 +157,60 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   // Refs for template inputs (to insert text at cursor)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // ── Brand picker state ────────────────────────────────────────────────────
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
+  const [brandScanCol, setBrandScanCol]       = useState('');
+  const [brandScanLoading, setBrandScanLoading] = useState(false);
+  const [brandScanList, setBrandScanList]     = useState<string[]>([]);
+  const [brandChecked, setBrandChecked]       = useState<Set<string>>(new Set());
+  const [brandScanError, setBrandScanError]   = useState('');
+
+  async function scanBrands() {
+    if (!brandScanCol) return;
+    setBrandScanLoading(true);
+    setBrandScanError('');
+    setBrandScanList([]);
+    try {
+      const res = await fetch('/api/admin/feeds/scan-column', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feed_url: config.feed_url,
+          format: config.format,
+          delimiter: config.delimiter,
+          auth_method: config.auth_method,
+          api_key: config.api_key,
+          token: config.token,
+          customer_id: config.customer_id,
+          column: brandScanCol,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Eroare necunoscută');
+      setBrandScanList(data.values);
+      // Pre-check brands that are already in brand_filter
+      const existing = new Set(
+        mappings.brand_filter.split(',').map(b => b.trim()).filter(Boolean)
+      );
+      setBrandChecked(existing.size > 0 ? existing : new Set(data.values));
+    } catch (e: any) {
+      setBrandScanError(e.message);
+    } finally {
+      setBrandScanLoading(false);
+    }
+  }
+
+  function applyBrandSelection() {
+    const selected = Array.from(brandChecked).sort();
+    // If all brands selected → clear filter (= import all)
+    if (selected.length === brandScanList.length) {
+      setMappings(m => ({ ...m, brand_filter: '' }));
+    } else {
+      setMappings(m => ({ ...m, brand_filter: selected.join(', ') }));
+    }
+    setBrandPickerOpen(false);
+  }
+
   // Formula live validation
   const formulaValidation = mappings.price_formula
     ? validateFormula(mappings.price_formula) : null;
@@ -658,11 +712,99 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Filtrare după brand</label>
-                  <input className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
-                    placeholder="Ex: Borbet, BBS, OZ (gol = importă toate)"
-                    value={mappings.brand_filter}
-                    onChange={e => setMappings(m => ({ ...m, brand_filter: e.target.value }))} />
-                  <p className="text-xs text-muted-foreground mt-1">Liste separate prin virgulă. Gol = importă toate brandurile</p>
+                  <div className="flex gap-2">
+                    <input className="flex-1 border rounded-lg px-3 py-2.5 text-sm bg-background"
+                      placeholder="Ex: Borbet, BBS, OZ (gol = importă toate)"
+                      value={mappings.brand_filter}
+                      onChange={e => setMappings(m => ({ ...m, brand_filter: e.target.value }))} />
+                    {columns.length > 0 && (
+                      <button type="button"
+                        onClick={() => {
+                          setBrandPickerOpen(o => !o);
+                          if (!brandScanCol) setBrandScanCol(mappings.brand || columns[0] || '');
+                        }}
+                        className="shrink-0 text-sm border border-primary/40 text-primary hover:bg-primary/5 px-3 py-2 rounded-lg font-medium transition-colors">
+                        Detectează
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {mappings.brand_filter
+                      ? `Importă doar: ${mappings.brand_filter}`
+                      : 'Gol = importă toate brandurile'}
+                  </p>
+
+                  {/* Brand picker panel */}
+                  {brandPickerOpen && (
+                    <div className="mt-3 border rounded-xl p-4 bg-gray-50 space-y-3">
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <label className="block text-xs font-medium mb-1 text-muted-foreground">
+                            Coloana cu branduri din feed
+                          </label>
+                          <select
+                            className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+                            value={brandScanCol}
+                            onChange={e => setBrandScanCol(e.target.value)}>
+                            {columns.map(col => <option key={col} value={col}>{col}</option>)}
+                          </select>
+                        </div>
+                        <button type="button"
+                          onClick={scanBrands}
+                          disabled={brandScanLoading || !brandScanCol}
+                          className="shrink-0 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50">
+                          {brandScanLoading ? 'Se citește...' : 'Scanează'}
+                        </button>
+                      </div>
+
+                      {brandScanError && (
+                        <p className="text-xs text-red-600">{brandScanError}</p>
+                      )}
+
+                      {brandScanList.length > 0 && (
+                        <>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{brandScanList.length} branduri găsite</span>
+                            <div className="flex gap-3">
+                              <button type="button" className="text-primary hover:underline"
+                                onClick={() => setBrandChecked(new Set(brandScanList))}>
+                                Toate
+                              </button>
+                              <button type="button" className="text-primary hover:underline"
+                                onClick={() => setBrandChecked(new Set())}>
+                                Niciunul
+                              </button>
+                            </div>
+                          </div>
+                          <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
+                            {brandScanList.map(brand => (
+                              <label key={brand} className="flex items-center gap-2.5 cursor-pointer hover:bg-white rounded px-1 py-0.5">
+                                <input type="checkbox"
+                                  checked={brandChecked.has(brand)}
+                                  onChange={e => setBrandChecked(prev => {
+                                    const next = new Set(prev);
+                                    e.target.checked ? next.add(brand) : next.delete(brand);
+                                    return next;
+                                  })}
+                                  className="w-4 h-4 rounded border-gray-300 text-primary cursor-pointer" />
+                                <span className="text-sm">{brand}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 pt-1 border-t">
+                            <button type="button" onClick={applyBrandSelection}
+                              className="flex-1 bg-primary text-primary-foreground rounded-lg py-2 text-sm font-medium">
+                              Aplică selecția ({brandChecked.size === brandScanList.length ? 'toate' : `${brandChecked.size} selectate`})
+                            </button>
+                            <button type="button" onClick={() => setBrandPickerOpen(false)}
+                              className="px-4 border rounded-lg text-sm hover:bg-gray-100">
+                              Anulează
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Filtrare după model</label>
