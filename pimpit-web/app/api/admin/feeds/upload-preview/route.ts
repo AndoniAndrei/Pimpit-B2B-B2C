@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Papa from 'papaparse';
 import { createServerClient } from '@supabase/ssr';
+import { parseFeedBuffer, FeedFormat } from '@/lib/feedParser';
 
 export async function POST(req: NextRequest) {
   const anonClient = createServerClient(
@@ -21,35 +21,22 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
-  const format = (formData.get('format') as string) || 'csv';
+  const format = ((formData.get('format') as string) || 'csv') as FeedFormat;
   const delimiter = (formData.get('delimiter') as string) || ',';
 
   if (!file) return NextResponse.json({ error: 'Fișierul lipsește' }, { status: 400 });
 
-  const text = await file.text();
-  let rows: Record<string, any>[] = [];
-
   try {
-    if (format === 'json') {
-      const json = JSON.parse(text);
-      rows = Array.isArray(json) ? json : (Object.values(json).find(Array.isArray) as any[]) || [];
-    } else {
-      const parsed = Papa.parse<Record<string, any>>(text, {
-        header: true,
-        skipEmptyLines: true,
-        delimiter: delimiter || ',',
-        preview: 10,
-      });
-      rows = parsed.data;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const rows = parseFeedBuffer(buffer, format, delimiter);
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'Fișierul nu conține date sau formatul este greșit' }, { status: 422 });
     }
+
+    const columns = Object.keys(rows[0]);
+    return NextResponse.json({ columns, rows: rows.slice(0, 5), totalRows: rows.length });
   } catch (e: any) {
     return NextResponse.json({ error: `Eroare la parsarea fișierului: ${e.message}` }, { status: 422 });
   }
-
-  if (rows.length === 0) {
-    return NextResponse.json({ error: 'Fișierul nu conține date sau formatul este greșit' }, { status: 422 });
-  }
-
-  const columns = Object.keys(rows[0]);
-  return NextResponse.json({ columns, rows: rows.slice(0, 5), totalRows: rows.length });
 }

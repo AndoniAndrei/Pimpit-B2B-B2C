@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Papa from 'papaparse';
 import { createServerClient } from '@supabase/ssr';
+import { parseFeedBuffer, FeedFormat } from '@/lib/feedParser';
 
 export async function POST(req: NextRequest) {
-  // Auth check
   const anonClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
 
   if (!url) return NextResponse.json({ error: 'URL-ul este obligatoriu' }, { status: 400 });
 
-  // Build headers
   const headers: Record<string, string> = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/csv,application/json,*/*;q=0.8',
@@ -39,12 +37,9 @@ export async function POST(req: NextRequest) {
       fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + `api_key=${api_key}`;
     }
   }
-  if (token && fetchUrl.includes('{TOKEN}')) {
-    fetchUrl = fetchUrl.replace('{TOKEN}', token);
-  }
+  if (token && fetchUrl.includes('{TOKEN}')) fetchUrl = fetchUrl.replace('{TOKEN}', token);
   if (auth_method === 'basic_auth' && customer_id && token) {
-    const b64 = Buffer.from(`${customer_id}:${token}`).toString('base64');
-    headers['Authorization'] = `Basic ${b64}`;
+    headers['Authorization'] = `Basic ${Buffer.from(`${customer_id}:${token}`).toString('base64')}`;
   }
 
   try {
@@ -53,30 +48,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Feed-ul a returnat ${res.status} ${res.statusText}` }, { status: 422 });
     }
 
-    const text = await res.text();
-    let rows: Record<string, any>[] = [];
-
-    if (format === 'json') {
-      const json = JSON.parse(text);
-      rows = Array.isArray(json) ? json : (Object.values(json).find(Array.isArray) as any[]) || [];
-    } else {
-      const parsed = Papa.parse<Record<string, any>>(text, {
-        header: true,
-        skipEmptyLines: true,
-        delimiter: delimiter || ',',
-        preview: 10,
-      });
-      rows = parsed.data;
-    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const rows = parseFeedBuffer(buffer, (format || 'csv') as FeedFormat, delimiter);
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Feed-ul nu conține date sau formatul este greșit' }, { status: 422 });
     }
 
     const columns = Object.keys(rows[0]);
-    const previewRows = rows.slice(0, 5);
-
-    return NextResponse.json({ columns, rows: previewRows, totalRows: rows.length });
+    return NextResponse.json({ columns, rows: rows.slice(0, 5), totalRows: rows.length });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 422 });
   }

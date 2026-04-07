@@ -1,4 +1,3 @@
-import Papa from 'papaparse';
 import { createServerClient } from '@supabase/ssr';
 import { parseRow, FieldMappings, ParsedProduct } from './genericParser';
 
@@ -66,7 +65,7 @@ function generateUniqueSlugs(products: ParsedProduct[]): Map<ParsedProduct, stri
   return slugMap;
 }
 
-async function fetchFeed(supplier: any): Promise<string> {
+async function fetchFeed(supplier: any): Promise<Buffer> {
   let url: string = supplier.feed_url;
   const headers: Record<string, string> = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -94,37 +93,15 @@ async function fetchFeed(supplier: any): Promise<string> {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
+  const timeout = setTimeout(() => controller.abort(), 120_000);
 
   try {
     const res = await fetch(url, { headers, signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${url}`);
-    return await res.text();
+    return Buffer.from(await res.arrayBuffer());
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function parseRawData(text: string, format: string, delimiter: string): Record<string, any>[] {
-  if (format === 'json') {
-    const json = JSON.parse(text);
-    if (Array.isArray(json)) return json;
-    // Find first array property
-    for (const key of Object.keys(json)) {
-      if (Array.isArray(json[key])) return json[key];
-    }
-    return [];
-  }
-
-  // CSV
-  const result = Papa.parse<Record<string, any>>(text, {
-    header: true,
-    skipEmptyLines: true,
-    delimiter: delimiter || ',',
-    transformHeader: (h) => h.trim(), // trim whitespace from headers
-  });
-
-  return result.data;
 }
 
 // ─── Main import function ───────────────────────────────────────────────────
@@ -156,9 +133,9 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
   }
 
   // Fetch feed
-  let rawText: string;
+  let feedBuffer: Buffer;
   try {
-    rawText = await fetchFeed(supplier);
+    feedBuffer = await fetchFeed(supplier);
   } catch (e: any) {
     throw new Error(`Nu s-a putut descărca feed-ul: ${e.message}`);
   }
@@ -166,8 +143,9 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
   // Parse raw data
   let rows: Record<string, any>[];
   try {
+    const { parseFeedBuffer } = await import('./feedParser');
     const delimiter = dc.csv_delimiter || supplier.csv_delimiter || ',';
-    rows = parseRawData(rawText, supplier.format, delimiter);
+    rows = parseFeedBuffer(feedBuffer, supplier.format || 'csv', delimiter);
   } catch (e: any) {
     throw new Error(`Eroare la parsarea fișierului: ${e.message}`);
   }

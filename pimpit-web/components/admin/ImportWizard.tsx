@@ -514,6 +514,7 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                 onChange={e => setConfig(c => ({ ...c, format: e.target.value as any }))}>
                 <option value="csv">CSV</option>
                 <option value="json">JSON</option>
+                <option value="xlsx">Excel (XLSX)</option>
               </select>
             </div>
 
