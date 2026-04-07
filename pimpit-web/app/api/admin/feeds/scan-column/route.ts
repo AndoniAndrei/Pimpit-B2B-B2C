@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   if (!column)   return NextResponse.json({ error: 'Coloana este obligatorie' }, { status: 400 });
 
   // Build fetch URL + headers (same auth logic as preview endpoint)
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/csv,application/json,*/*;q=0.8',
+  };
   let fetchUrl = feed_url;
 
   if (auth_method === 'api_key' && api_key) {

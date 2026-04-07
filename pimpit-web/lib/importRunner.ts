@@ -68,7 +68,10 @@ function generateUniqueSlugs(products: ParsedProduct[]): Map<ParsedProduct, stri
 
 async function fetchFeed(supplier: any): Promise<string> {
   let url: string = supplier.feed_url;
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/csv,application/json,*/*;q=0.8',
+  };
   const dc = supplier.driver_config || {};
 
   // Resolve API key placeholder from env or stored config
