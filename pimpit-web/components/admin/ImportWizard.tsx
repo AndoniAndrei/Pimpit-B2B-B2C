@@ -16,6 +16,12 @@ interface FeedConfig {
   api_key: string;
   token: string;
   customer_id: string;
+  // Secondary feed (merged by join key at import time)
+  secondary_feed_url: string;
+  secondary_feed_format: 'csv' | 'json' | 'xlsx';
+  secondary_feed_delimiter: string;
+  secondary_join_key: string;   // column name in secondary feed
+  primary_join_key: string;     // column name in primary feed
 }
 
 interface ExtraField {
@@ -148,6 +154,8 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   const [config, setConfig] = useState<FeedConfig>({
     name: '', feed_url: '', format: 'csv', delimiter: ',',
     auth_method: 'none', api_key: '', token: '', customer_id: '',
+    secondary_feed_url: '', secondary_feed_format: 'csv', secondary_feed_delimiter: ',',
+    secondary_join_key: '', primary_join_key: '',
     ...initialConfig,
   });
   const [mappings, setMappings] = useState<FieldMappings>(() => {
@@ -352,14 +360,14 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
         const res = await fetch(`/api/admin/feeds/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la salvare'); return; }
       } else {
         const res = await fetch('/api/admin/feeds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la creare'); return; }
         const d = await res.json();
@@ -579,6 +587,62 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                   onChange={e => setConfig(c => ({ ...c, token: e.target.value }))} />
               </div>
             </>)}
+          </div>
+
+          {/* Secondary feed */}
+          <div className="border rounded-xl p-5 space-y-4 bg-muted/30">
+            <div>
+              <h3 className="text-sm font-semibold">Feed secundar (opțional)</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Combină două surse de date la import (ex: XLSX cu specs + CSV cu stoc/preț). Rândurile sunt îmbinate pe baza unui câmp comun.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium mb-1">URL feed secundar</label>
+                <input className="w-full border rounded-lg px-3 py-2 text-sm bg-background font-mono"
+                  placeholder="https://furnizor.com/stock.csv"
+                  value={config.secondary_feed_url}
+                  onChange={e => setConfig(c => ({ ...c, secondary_feed_url: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Format feed secundar</label>
+                <select className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+                  value={config.secondary_feed_format}
+                  onChange={e => setConfig(c => ({ ...c, secondary_feed_format: e.target.value as any }))}>
+                  <option value="csv">CSV</option>
+                  <option value="json">JSON</option>
+                  <option value="xlsx">Excel (XLSX)</option>
+                </select>
+              </div>
+              {config.secondary_feed_format === 'csv' && (
+                <div>
+                  <label className="block text-xs font-medium mb-1">Delimitator CSV secundar</label>
+                  <select className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
+                    value={config.secondary_feed_delimiter}
+                    onChange={e => setConfig(c => ({ ...c, secondary_feed_delimiter: e.target.value }))}>
+                    <option value=",">Virgulă (,)</option>
+                    <option value=";">Punct-virgulă (;)</option>
+                    <option value="\t">Tab (\t)</option>
+                    <option value="|">Pipe (|)</option>
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium mb-1">Coloană cheie în feed secundar</label>
+                <input className="w-full border rounded-lg px-3 py-2 text-sm bg-background font-mono"
+                  placeholder="ex: mpn"
+                  value={config.secondary_join_key}
+                  onChange={e => setConfig(c => ({ ...c, secondary_join_key: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Coloană cheie în feed primar</label>
+                <input className="w-full border rounded-lg px-3 py-2 text-sm bg-background font-mono"
+                  placeholder="ex: ArtNr-BestellNr"
+                  value={config.primary_join_key}
+                  onChange={e => setConfig(c => ({ ...c, primary_join_key: e.target.value }))} />
+              </div>
+            </div>
           </div>
 
           <button onClick={handlePreview} disabled={loadingPreview || !config.feed_url.trim()}

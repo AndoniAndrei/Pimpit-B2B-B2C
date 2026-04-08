@@ -154,6 +154,44 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     throw new Error('Feed-ul nu conține date sau formatul este greșit.');
   }
 
+  // ── Secondary feed merge ─────────────────────────────────────────────────
+  if (dc.secondary_feed_url && dc.secondary_join_key && dc.primary_join_key) {
+    try {
+      const secBuffer = await fetchFeed({
+        feed_url: dc.secondary_feed_url,
+        format: dc.secondary_feed_format || 'csv',
+        auth_method: 'none',
+        driver_config: {},
+      });
+      const { parseFeedBuffer } = await import('./feedParser');
+      const secRows = parseFeedBuffer(secBuffer, dc.secondary_feed_format || 'csv', dc.secondary_feed_delimiter || ',');
+      // Build lookup map: secondary join key → row
+      const secMap = new Map<string, Record<string, any>>();
+      for (const row of secRows) {
+        const key = String(row[dc.secondary_join_key] ?? '').trim().toLowerCase();
+        if (key) secMap.set(key, row);
+      }
+      // Merge secondary columns into primary rows (secondary prefixed with "sec__" on conflict)
+      rows = rows.map(row => {
+        const key = String(row[dc.primary_join_key] ?? '').trim().toLowerCase();
+        const secRow = secMap.get(key);
+        if (!secRow) return row;
+        const merged: Record<string, any> = { ...row };
+        for (const [col, val] of Object.entries(secRow)) {
+          if (col in merged) {
+            merged[`sec__${col}`] = val;
+          } else {
+            merged[col] = val;
+          }
+        }
+        return merged;
+      });
+      warnings.push(`Feed secundar: ${secRows.length} rânduri îmbinate pe ${dc.primary_join_key} ↔ ${dc.secondary_join_key}`);
+    } catch (e: any) {
+      warnings.push(`Feed secundar ignorat: ${e.message}`);
+    }
+  }
+
   // Parse each row
   const products: ParsedProduct[] = [];
   let skippedRows = 0;
