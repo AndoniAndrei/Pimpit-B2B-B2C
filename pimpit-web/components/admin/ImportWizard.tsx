@@ -292,8 +292,52 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Eroare la preluarea preview'); return; }
       if (!data.columns?.length) { setError('Feed-ul nu conține coloane detectabile'); return; }
-      setColumns(data.columns);
-      setPreviewRows(data.rows || []);
+
+      let allColumns = data.columns as string[];
+      let allRows = data.rows as Record<string, any>[];
+
+      // Fetch secondary feed columns too, so they appear in the field picker
+      if (config.secondary_feed_url.trim()) {
+        try {
+          const secRes = await fetch('/api/admin/feeds/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              feed_url: config.secondary_feed_url,
+              format: config.secondary_feed_format,
+              delimiter: config.secondary_feed_delimiter,
+              auth_method: 'none',
+            }),
+          });
+          const secData = await secRes.json();
+          if (secRes.ok && secData.columns?.length) {
+            // Merge secondary columns (avoid duplicates)
+            const secCols = (secData.columns as string[]).filter(c => !allColumns.includes(c));
+            allColumns = [...allColumns, ...secCols];
+            // Merge secondary rows by join key so live preview works
+            if (config.secondary_join_key && config.primary_join_key) {
+              const secMap = new Map<string, Record<string, any>>();
+              for (const row of secData.rows as Record<string, any>[]) {
+                const k = String(row[config.secondary_join_key] ?? '').trim().toLowerCase();
+                if (k) secMap.set(k, row);
+              }
+              allRows = allRows.map(row => {
+                const k = String(row[config.primary_join_key] ?? '').trim().toLowerCase();
+                const secRow = secMap.get(k);
+                if (!secRow) return row;
+                const merged: Record<string, any> = { ...row };
+                for (const [col, val] of Object.entries(secRow)) {
+                  if (!(col in merged)) merged[col] = val;
+                }
+                return merged;
+              });
+            }
+          }
+        } catch { /* secondary preview failure is non-fatal */ }
+      }
+
+      setColumns(allColumns);
+      setPreviewRows(allRows);
       setStep(2);
     } catch (e: any) {
       setError('Eroare de rețea: ' + e.message);
