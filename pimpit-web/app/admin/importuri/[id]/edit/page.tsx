@@ -26,6 +26,11 @@ export default async function EditFeedPage({ params }: { params: { id: string } 
     api_key: dc.api_key || '',
     token: dc.token || '',
     customer_id: dc.customer_id || '',
+    secondary_feed_url: dc.secondary_feed_url || '',
+    secondary_feed_format: dc.secondary_feed_format || 'csv',
+    secondary_feed_delimiter: dc.secondary_feed_delimiter || ',',
+    secondary_join_key: dc.secondary_join_key || '',
+    primary_join_key: dc.primary_join_key || '',
   };
 
   return (

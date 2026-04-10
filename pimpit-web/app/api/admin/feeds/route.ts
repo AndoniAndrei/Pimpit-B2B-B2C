@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings } = body;
+  const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings,
+    secondary_feed_url, secondary_feed_format, secondary_feed_delimiter, secondary_join_key, primary_join_key } = body;
 
   if (!name || !feed_url) {
     return NextResponse.json({ error: 'Câmpurile obligatorii lipsesc' }, { status: 400 });
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest) {
   if (api_key) driver_config.api_key = api_key;
   if (token) driver_config.token = token;
   if (customer_id) driver_config.customer_id = customer_id;
+  if (secondary_feed_url) driver_config.secondary_feed_url = secondary_feed_url;
+  if (secondary_feed_format) driver_config.secondary_feed_format = secondary_feed_format;
+  if (secondary_feed_delimiter) driver_config.secondary_feed_delimiter = secondary_feed_delimiter;
+  if (secondary_join_key) driver_config.secondary_join_key = secondary_join_key;
+  if (primary_join_key) driver_config.primary_join_key = primary_join_key;
 
   const { data, error } = await db.from('suppliers').insert({
     id: nextId,

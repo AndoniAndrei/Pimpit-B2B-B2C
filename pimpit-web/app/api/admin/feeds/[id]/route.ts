@@ -33,7 +33,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!(await checkAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings, is_active } = body;
+  const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings, is_active,
+    secondary_feed_url, secondary_feed_format, secondary_feed_delimiter, secondary_join_key, primary_join_key } = body;
 
   const db = makeAdminClient();
   const { data: existing } = await db.from('suppliers').select('driver_config').eq('id', params.id).maybeSingle();
@@ -44,6 +45,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (api_key !== undefined) driver_config.api_key = api_key;
   if (token !== undefined) driver_config.token = token;
   if (customer_id !== undefined) driver_config.customer_id = customer_id;
+  // Secondary feed — save empty string too (to allow clearing the field)
+  driver_config.secondary_feed_url = secondary_feed_url ?? driver_config.secondary_feed_url ?? '';
+  driver_config.secondary_feed_format = secondary_feed_format ?? driver_config.secondary_feed_format ?? 'csv';
+  driver_config.secondary_feed_delimiter = secondary_feed_delimiter ?? driver_config.secondary_feed_delimiter ?? ',';
+  driver_config.secondary_join_key = secondary_join_key ?? driver_config.secondary_join_key ?? '';
+  driver_config.primary_join_key = primary_join_key ?? driver_config.primary_join_key ?? '';
 
   const updates: Record<string, any> = { driver_config };
   if (name) updates.name = name;
