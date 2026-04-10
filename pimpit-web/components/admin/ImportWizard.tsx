@@ -314,19 +314,30 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
             // Merge secondary columns (avoid duplicates)
             const secCols = (secData.columns as string[]).filter(c => !allColumns.includes(c));
             allColumns = [...allColumns, ...secCols];
-            // Merge secondary rows by join key so live preview works
+            const secRows = secData.rows as Record<string, any>[];
+            const fallbackSecRow = secRows[0] ?? {};
+            // Merge secondary rows by join key; fall back to first secondary row for preview display
             if (config.secondary_join_key && config.primary_join_key) {
               const secMap = new Map<string, Record<string, any>>();
-              for (const row of secData.rows as Record<string, any>[]) {
+              for (const row of secRows) {
                 const k = String(row[config.secondary_join_key] ?? '').trim().toLowerCase();
                 if (k) secMap.set(k, row);
               }
               allRows = allRows.map(row => {
                 const k = String(row[config.primary_join_key] ?? '').trim().toLowerCase();
-                const secRow = secMap.get(k);
-                if (!secRow) return row;
+                // Use matched row or fall back to first secondary row so data is visible in preview
+                const secRow = secMap.get(k) ?? fallbackSecRow;
                 const merged: Record<string, any> = { ...row };
                 for (const [col, val] of Object.entries(secRow)) {
+                  if (!(col in merged)) merged[col] = val;
+                }
+                return merged;
+              });
+            } else {
+              // No join keys configured — just append first secondary row data to all preview rows
+              allRows = allRows.map(row => {
+                const merged: Record<string, any> = { ...row };
+                for (const [col, val] of Object.entries(fallbackSecRow)) {
                   if (!(col in merged)) merged[col] = val;
                 }
                 return merged;
