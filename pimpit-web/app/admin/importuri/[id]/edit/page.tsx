@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr';
 import { notFound } from 'next/navigation';
 import ImportWizard from '@/components/admin/ImportWizard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditFeedPage({ params }: { params: { id: string } }) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
