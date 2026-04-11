@@ -27,8 +27,8 @@ export default function ImportActions({ supplierId, hasMappings }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2 w-full sm:w-auto sm:items-end shrink-0">
-      <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
+    <div className="flex flex-col gap-2 w-full">
+      <div className="grid grid-cols-2 gap-2">
         <Link
           href={`/admin/importuri/${supplierId}/edit`}
           className="text-center px-3 py-2 border rounded-lg text-sm font-medium hover:bg-muted truncate"

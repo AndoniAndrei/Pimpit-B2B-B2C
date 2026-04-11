@@ -55,39 +55,40 @@ export default async function ImporturiPage() {
           const hasMappings = !!supplier.driver_config?.field_mappings;
 
           return (
-            <div key={supplier.id} className="bg-card border rounded-xl p-5">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-bold text-lg">{supplier.name}</h2>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${supplier.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
-                      {supplier.is_active ? 'ACTIV' : 'INACTIV'}
-                    </span>
-                    {!hasMappings && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
-                        NECONFIGURAT
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground font-mono truncate">{supplier.feed_url}</p>
-
-                  {lastLog && (
-                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span className={`font-medium ${lastLog.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                        {lastLog.status === 'success' ? '✓' : '✗'} {lastLog.status}
-                      </span>
-                      <span>{lastLog.products_inserted?.toLocaleString() || 0} produse importate</span>
-                      <span>{new Date(lastLog.created_at).toLocaleString('ro-RO')}</span>
-                    </div>
-                  )}
-
-                  {!lastLog && (
-                    <p className="text-xs text-muted-foreground mt-2">Nu a fost rulat niciodată</p>
-                  )}
-                </div>
-
-                <ImportActions supplierId={supplier.id} hasMappings={hasMappings} />
+            <div key={supplier.id} className="bg-card border rounded-xl p-4 sm:p-5 space-y-3">
+              {/* Header row: name + badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-bold text-base sm:text-lg leading-tight">{supplier.name}</h2>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ${supplier.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                  {supplier.is_active ? 'ACTIV' : 'INACTIV'}
+                </span>
+                {!hasMappings && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 shrink-0">
+                    NECONFIGURAT
+                  </span>
+                )}
               </div>
+
+              {/* Feed URL — truncated, full width */}
+              <p className="text-xs text-muted-foreground font-mono break-all line-clamp-1">
+                {supplier.feed_url}
+              </p>
+
+              {/* Last sync info */}
+              {lastLog ? (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <span className={`font-medium ${lastLog.status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                    {lastLog.status === 'success' ? '✓' : '✗'} {lastLog.status}
+                  </span>
+                  <span>{lastLog.products_inserted?.toLocaleString() || 0} produse</span>
+                  <span>{new Date(lastLog.created_at).toLocaleString('ro-RO')}</span>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nu a fost rulat niciodată</p>
+              )}
+
+              {/* Actions — always full width, below info */}
+              <ImportActions supplierId={supplier.id} hasMappings={hasMappings} />
             </div>
           );
         })}
