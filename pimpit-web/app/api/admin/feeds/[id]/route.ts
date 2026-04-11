@@ -34,7 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json();
   const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings, is_active,
-    secondary_feed_url, secondary_feed_format, secondary_feed_delimiter, secondary_join_key, primary_join_key } = body;
+    secondary_feed_url, secondary_feed_format, secondary_feed_delimiter, secondary_join_key, primary_join_key,
+    image_api_url_template } = body;
 
   const db = makeAdminClient();
   const { data: existing } = await db.from('suppliers').select('driver_config').eq('id', params.id).maybeSingle();
@@ -51,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   driver_config.secondary_feed_delimiter = secondary_feed_delimiter ?? driver_config.secondary_feed_delimiter ?? ',';
   driver_config.secondary_join_key = secondary_join_key ?? driver_config.secondary_join_key ?? '';
   driver_config.primary_join_key = primary_join_key ?? driver_config.primary_join_key ?? '';
+  driver_config.image_api_url_template = image_api_url_template ?? driver_config.image_api_url_template ?? '';
 
   const updates: Record<string, any> = { driver_config };
   if (name) updates.name = name;

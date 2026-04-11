@@ -67,6 +67,9 @@ export interface FieldMappings {
   image_zip_id_3?: string;  // column with image ID #3
   image_zip_id_4?: string;  // column with image ID #4
 
+  // Media — REST API based (e.g. Statusfalgar GET /api/Images/{id})
+  image_api_id?: string;    // column with the article ID used in the image API URL
+
   // Physical / spec fields
   description?: string;
   weight?: string;
@@ -111,6 +114,7 @@ export interface ParsedProduct {
   model3dUrl?: string;
   zipImageUrl?: string;
   zipImageIds?: (string | number)[];
+  restImageId?: string;    // article ID for REST image API (e.g. Statusfalgar)
   color?: string;
   finish?: string;
   weight?: number;
@@ -322,6 +326,7 @@ export function parseRow(
     youtubeLink:    getStr(row, mappings.youtube_link),
     model3dUrl:     getStr(row, mappings.model_3d_url),
     zipImageUrl: getStr(row, mappings.image_zip_url),
+    restImageId: getStr(row, mappings.image_api_id),
     zipImageIds: (() => {
       const ids = [
         mappings.image_zip_id_1,

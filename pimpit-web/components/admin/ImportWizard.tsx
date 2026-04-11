@@ -22,6 +22,8 @@ interface FeedConfig {
   secondary_feed_delimiter: string;
   secondary_join_key: string;   // column name in secondary feed
   primary_join_key: string;     // column name in primary feed
+  // REST image API (e.g. Statusfalgar GET /api/Images/{id})
+  image_api_url_template: string;
 }
 
 interface ExtraField {
@@ -47,6 +49,8 @@ interface FieldMappings {
   // Media — ZIP-based (e.g. MB Design)
   image_zip_url: string;
   image_zip_id_1: string; image_zip_id_2: string; image_zip_id_3: string; image_zip_id_4: string;
+  // Media — REST API-based (e.g. Statusfalgar)
+  image_api_id: string;
   // Import behaviour (not column names)
   product_type: string;               // 'jante' | 'accesorii' | column name
   price_rounding: 'none' | 'round' | 'ceil' | 'floor';
@@ -68,6 +72,7 @@ const EMPTY_MAPPINGS: FieldMappings = {
   images: '', images_2: '', images_3: '', images_4: '', images_5: '',
   youtube_link: '', model_3d_url: '',
   image_zip_url: '', image_zip_id_1: '', image_zip_id_2: '', image_zip_id_3: '', image_zip_id_4: '',
+  image_api_id: '',
   product_type: 'jante', price_rounding: 'none',
   brand_filter: '', model_filter: '',
   extra_fields: [],
@@ -138,6 +143,9 @@ const STANDARD_FIELDS: {
   { key: 'image_zip_id_2',  label: 'ID imagine ZIP #2',          required: false, fieldType: 'select', group: 'media' },
   { key: 'image_zip_id_3',  label: 'ID imagine ZIP #3',          required: false, fieldType: 'select', group: 'media' },
   { key: 'image_zip_id_4',  label: 'ID imagine ZIP #4',          required: false, fieldType: 'select', group: 'media' },
+  // REST API-based images (Statusfalgar style)
+  { key: 'image_api_id',    label: 'ID articol pt. API imagini', required: false, fieldType: 'select', group: 'media',
+    hint: 'Coloana cu ID-ul articolului pentru API-ul de imagini (ex: "Id" la Statusfalgar → GET /api/Images/{id})' },
 ];
 
 interface Props {
@@ -156,6 +164,7 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
     auth_method: 'none', api_key: '', token: '', customer_id: '',
     secondary_feed_url: '', secondary_feed_format: 'csv', secondary_feed_delimiter: ',',
     secondary_join_key: '', primary_join_key: '',
+    image_api_url_template: '',
     ...initialConfig,
   });
   const [mappings, setMappings] = useState<FieldMappings>(() => {
@@ -415,14 +424,14 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
         const res = await fetch(`/api/admin/feeds/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la salvare'); return; }
       } else {
         const res = await fetch('/api/admin/feeds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la creare'); return; }
         const d = await res.json();
@@ -697,6 +706,28 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                   value={config.primary_join_key}
                   onChange={e => setConfig(c => ({ ...c, primary_join_key: e.target.value }))} />
               </div>
+            </div>
+          </div>
+
+          {/* REST Image API */}
+          <div className="border rounded-xl p-5 space-y-4 bg-muted/30">
+            <div>
+              <h3 className="text-sm font-semibold">API imagini REST (opțional)</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pentru furnizori cu endpoint separat de imagini (ex: Statusfalgar <code className="bg-muted px-1 rounded">GET /api/Images/{'{id}'}</code>).
+                La import, imaginile sunt descărcate și stocate automat — numai pentru produsele fără imagini existente.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">URL template API imagini</label>
+              <input className="w-full border rounded-lg px-3 py-2 text-sm bg-background font-mono"
+                placeholder="https://api.statusfalgar.se/api/Images/{id}"
+                value={config.image_api_url_template}
+                onChange={e => setConfig(c => ({ ...c, image_api_url_template: e.target.value }))} />
+              <p className="text-xs text-muted-foreground mt-1">
+                Folosește <code className="bg-muted px-1 rounded">{'{id}'}</code> ca placeholder pentru ID-ul articolului (configurat la mapare câmpuri → "ID articol pt. API imagini").
+                Autentificarea este preluată automat din setările de mai sus.
+              </p>
             </div>
           </div>
 

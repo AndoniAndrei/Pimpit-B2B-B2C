@@ -33,6 +33,7 @@ export default async function EditFeedPage({ params }: { params: { id: string } 
     secondary_feed_delimiter: dc.secondary_feed_delimiter || ',',
     secondary_join_key: dc.secondary_join_key || '',
     primary_join_key: dc.primary_join_key || '',
+    image_api_url_template: dc.image_api_url_template || '',
   };
 
   return (

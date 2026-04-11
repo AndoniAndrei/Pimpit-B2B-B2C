@@ -96,6 +96,70 @@ export async function uploadImageToStorage(
   return pub?.publicUrl ?? null;
 }
 
+// ── REST API image fetching (e.g. Statusfalgar GET /api/Images/{id}) ──────────
+
+async function fetchImageFromUrl(
+  url: string,
+  authHeader?: string
+): Promise<{ data: Uint8Array; ext: string } | null> {
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  };
+  if (authHeader) headers['Authorization'] = authHeader;
+
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) return null;
+
+  const ct = res.headers.get('content-type') ?? '';
+  const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+  return { data: new Uint8Array(await res.arrayBuffer()), ext };
+}
+
+export interface RestImageSpec {
+  partNumber: string;
+  brand: string;
+  imageId: string;
+}
+
+export async function processRestApiImages(
+  supabase: any,
+  specs: RestImageSpec[],
+  urlTemplate: string,
+  authHeader?: string,
+): Promise<ImageProcessResult[]> {
+  const CONCURRENCY = 5;
+  const results: ImageProcessResult[] = [];
+
+  for (let i = 0; i < specs.length; i += CONCURRENCY) {
+    const batch = specs.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(batch.map(async (spec): Promise<ImageProcessResult> => {
+      try {
+        const imageUrl = urlTemplate
+          .replace('{id}', spec.imageId)
+          .replace('{Id}', spec.imageId)
+          .replace('{ID}', spec.imageId);
+
+        const fetched = await fetchImageFromUrl(imageUrl, authHeader);
+        if (!fetched) {
+          return { partNumber: spec.partNumber, brand: spec.brand, urls: [], errors: [`HTTP error for image ${spec.imageId}`] };
+        }
+
+        const url = await uploadImageToStorage(supabase, spec.imageId, fetched.data, fetched.ext, spec.brand);
+        if (url) return { partNumber: spec.partNumber, brand: spec.brand, urls: [url], errors: [] };
+        return { partNumber: spec.partNumber, brand: spec.brand, urls: [], errors: [`Upload failed for ${spec.imageId}`] };
+      } catch (e: any) {
+        return { partNumber: spec.partNumber, brand: spec.brand, urls: [], errors: [e.message] };
+      }
+    }));
+
+    results.push(...batchResults);
+    // Brief pause between batches to avoid overwhelming the API
+    if (i + CONCURRENCY < specs.length) await new Promise(r => setTimeout(r, 150));
+  }
+
+  return results;
+}
+
 // ── Main: process images for a batch of products ─────────────────────────────
 
 export interface ProductImageSpec {
