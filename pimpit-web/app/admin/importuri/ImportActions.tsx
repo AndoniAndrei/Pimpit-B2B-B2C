@@ -27,18 +27,18 @@ export default function ImportActions({ supplierId, hasMappings }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2 shrink-0">
+    <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0 w-full sm:w-auto">
       <div className="flex gap-2">
         <Link
           href={`/admin/importuri/${supplierId}/edit`}
-          className="px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-muted"
+          className="flex-1 sm:flex-none text-center px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-muted"
         >
           Configurează
         </Link>
         <button
           onClick={runImport}
           disabled={loading || !hasMappings}
-          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold disabled:opacity-50"
+          className="flex-1 sm:flex-none px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold disabled:opacity-50"
           title={!hasMappings ? 'Configurează câmpurile mai întâi' : ''}
         >
           {loading ? 'Se importă...' : '▶ Importă acum'}
@@ -46,10 +46,10 @@ export default function ImportActions({ supplierId, hasMappings }: Props) {
       </div>
 
       {result && (
-        <div className={`text-xs rounded-lg px-3 py-2 max-w-xs text-right ${result.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div className={`text-xs rounded-lg px-3 py-2 text-left sm:text-right ${result.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
           {result.error
             ? `Eroare: ${result.error}`
-            : `✓ ${result.inserted} produse salvate din ${result.fetched} rânduri (${result.durationMs}ms)`}
+            : `✓ ${result.upserted} produse salvate din ${result.fetched} rânduri (${(result.durationMs/1000).toFixed(1)}s)`}
         </div>
       )}
     </div>

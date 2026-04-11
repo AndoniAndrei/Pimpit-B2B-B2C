@@ -37,7 +37,7 @@ export default function CatalogControls({ initialSearch, initialSort, totalCount
       </div>
 
       {/* Controls row */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
         {/* Mobile filter button — injected from parent */}
         {mobileFilterSlot}
 
@@ -57,7 +57,7 @@ export default function CatalogControls({ initialSearch, initialSort, totalCount
         <select
           defaultValue={initialSort}
           onChange={e => updateParam('sort', e.target.value)}
-          className="border rounded-xl px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shrink-0 max-w-[7rem]"
+          className="border rounded-xl px-2 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shrink-0"
         >
           <option value="relevance">Relevanță</option>
           <option value="price_asc">Preț ↑</option>

@@ -164,24 +164,24 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center bg-card border rounded-xl p-4">
         <input
-          className="border rounded-lg px-3 py-2 text-sm bg-background w-64"
+          className="border rounded-lg px-3 py-2 text-sm bg-background w-full sm:w-64"
           placeholder="Caută brand, denumire, cod..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
         />
-        <select className="border rounded-lg px-3 py-2 text-sm bg-background" value={filterActive} onChange={e => { setFilterActive(e.target.value); setPage(1) }}>
+        <select className="border rounded-lg px-3 py-2 text-sm bg-background flex-1 sm:flex-none" value={filterActive} onChange={e => { setFilterActive(e.target.value); setPage(1) }}>
           <option value="">Toate statusurile</option>
           <option value="true">Activ</option>
           <option value="false">Inactiv</option>
         </select>
-        <select className="border rounded-lg px-3 py-2 text-sm bg-background" value={filterSupplier} onChange={e => { setFilterSupplier(e.target.value); setPage(1) }}>
+        <select className="border rounded-lg px-3 py-2 text-sm bg-background flex-1 sm:flex-none" value={filterSupplier} onChange={e => { setFilterSupplier(e.target.value); setPage(1) }}>
           <option value="">Toți furnizorii</option>
           {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         <span className="text-sm text-muted-foreground">{total.toLocaleString()} produse</span>
         <button
           onClick={() => setDeleteAllStep(1)}
-          className="ml-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg"
+          className="w-full sm:w-auto sm:ml-auto px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg"
         >
           🗑 Șterge toate produsele
         </button>

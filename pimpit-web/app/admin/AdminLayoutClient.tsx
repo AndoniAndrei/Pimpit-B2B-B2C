@@ -70,7 +70,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
           </button>
           <span className="font-semibold text-sm">Admin Panel</span>
         </div>
-        <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 md:p-8 overflow-x-hidden min-w-0">
           {children}
         </main>
       </div>

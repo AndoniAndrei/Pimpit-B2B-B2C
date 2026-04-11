@@ -14,13 +14,13 @@ export default async function SyncLogsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Istoric Sincronizări ETL</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">Istoric Sincronizări ETL</h1>
         <SyncTrigger />
       </div>
 
-      <div className="bg-card border rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="bg-card border rounded-xl overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm text-left min-w-[600px]">
           <thead className="bg-muted text-muted-foreground">
             <tr>
               <th className="px-6 py-3 font-medium">Furnizor</th>

@@ -27,14 +27,14 @@ export default async function ImporturiPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Surse de produse</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Surse de produse</h1>
           <p className="text-muted-foreground mt-1">Gestionează feed-urile și importă produse</p>
         </div>
         <Link
           href="/admin/importuri/nou"
-          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-semibold text-sm"
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-lg font-semibold text-sm self-start sm:self-auto shrink-0"
         >
           + Adaugă sursă nouă
         </Link>
@@ -56,7 +56,7 @@ export default async function ImporturiPage() {
 
           return (
             <div key={supplier.id} className="bg-card border rounded-xl p-5">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="font-bold text-lg">{supplier.name}</h2>
