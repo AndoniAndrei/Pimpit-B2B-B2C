@@ -27,18 +27,18 @@ export default function ImportActions({ supplierId, hasMappings }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0 w-full sm:w-auto">
-      <div className="flex gap-2">
+    <div className="flex flex-col gap-2 w-full sm:w-auto sm:items-end shrink-0">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Link
           href={`/admin/importuri/${supplierId}/edit`}
-          className="flex-1 sm:flex-none text-center px-3 py-1.5 border rounded-lg text-xs font-medium hover:bg-muted"
+          className="text-center px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
         >
           Configurează
         </Link>
         <button
           onClick={runImport}
           disabled={loading || !hasMappings}
-          className="flex-1 sm:flex-none px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold disabled:opacity-50"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold disabled:opacity-40"
           title={!hasMappings ? 'Configurează câmpurile mai întâi' : ''}
         >
           {loading ? 'Se importă...' : '▶ Importă acum'}
