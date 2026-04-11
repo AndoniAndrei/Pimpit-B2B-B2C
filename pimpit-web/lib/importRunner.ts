@@ -262,8 +262,12 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
         cn_code:           p.cnCode           ?? null,
         certificate_url:   p.certificateUrl   ?? null,
         tuv_max_load:      p.tuvMaxLoad       ?? null,
-        // Media
-        images:       p.images,
+        // Media — prefer direct URLs; fall back to proxy URL for REST image APIs
+        images: p.images.length > 0
+          ? p.images
+          : (dc.image_api_url_template && p.restImageId)
+            ? [`/api/images/${supplierId}/${p.restImageId}`]
+            : [],
         youtube_link: p.youtubeLink  ?? null,
         model_3d_url: p.model3dUrl   ?? null,
         // Commerce
@@ -353,68 +357,6 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
       warnings.push(`Imagini procesate: ${toUpdate.length}/${withZipImages.length} produse`);
     } catch (e: any) {
       warnings.push(`Imagini ZIP: ${e.message}`);
-    }
-  }
-
-  // ── REST API image import (e.g. Statusfalgar GET /api/Images/{id}) ──────────
-  if (dc.image_api_url_template) {
-    const withRestImages = deduplicated.filter(p => p.restImageId);
-    if (withRestImages.length > 0) {
-      try {
-        // Build auth header from supplier credentials
-        let authHeader: string | undefined;
-        if (supplier.auth_method === 'basic_auth') {
-          const user = dc.customer_id || '';
-          const pass = dc.token || '';
-          if (user && pass) {
-            authHeader = `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`;
-          }
-        }
-
-        // Skip products that already have images stored
-        const { data: existingImages } = await db
-          .from('products')
-          .select('part_number, brand, images')
-          .in('part_number', withRestImages.map(p => p.partNumber))
-          .eq('winning_supplier_id', supplierId);
-
-        const alreadyHasImages = new Set(
-          (existingImages || [])
-            .filter(r => Array.isArray(r.images) && r.images.length > 0)
-            .map(r => `${r.part_number}|${r.brand}`)
-        );
-
-        const toFetch = withRestImages.filter(
-          p => !alreadyHasImages.has(`${p.partNumber}|${p.brand}`)
-        );
-
-        if (toFetch.length > 0) {
-          const { processRestApiImages } = await import('./imageImporter');
-          const specs = toFetch.map(p => ({
-            partNumber: p.partNumber,
-            brand: p.brand,
-            imageId: p.restImageId!,
-          }));
-
-          const imageResults = await processRestApiImages(db, specs, dc.image_api_url_template, authHeader);
-
-          const toUpdate = imageResults.filter(r => r.urls.length > 0);
-          for (const r of toUpdate) {
-            await db.from('products').update({ images: r.urls })
-              .eq('part_number', r.partNumber).eq('brand', r.brand);
-          }
-
-          const imgErrors = imageResults.flatMap(r => r.errors);
-          if (imgErrors.length > 0) {
-            warnings.push(`Imagini REST: ${imgErrors.length} erori (ex: ${imgErrors.slice(0, 2).join('; ')})`);
-          }
-          warnings.push(`Imagini REST: ${toUpdate.length}/${toFetch.length} preluate (${alreadyHasImages.size} deja existente)`);
-        } else {
-          warnings.push(`Imagini REST: toate produsele au deja imagini stocate`);
-        }
-      } catch (e: any) {
-        warnings.push(`Imagini REST: ${e.message}`);
-      }
     }
   }
 
