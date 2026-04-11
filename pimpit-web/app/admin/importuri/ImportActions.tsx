@@ -28,28 +28,35 @@ export default function ImportActions({ supplierId, hasMappings }: Props) {
 
   return (
     <div className="flex flex-col gap-2 w-full sm:w-auto sm:items-end shrink-0">
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2">
         <Link
           href={`/admin/importuri/${supplierId}/edit`}
-          className="text-center px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted"
+          className="text-center px-3 py-2 border rounded-lg text-sm font-medium hover:bg-muted truncate"
         >
-          Configurează
+          ⚙ Config
         </Link>
         <button
           onClick={runImport}
           disabled={loading || !hasMappings}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold disabled:opacity-40"
+          className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 truncate"
           title={!hasMappings ? 'Configurează câmpurile mai întâi' : ''}
         >
-          {loading ? 'Se importă...' : '▶ Importă acum'}
+          {loading ? (
+            <>
+              <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+              <span>Import...</span>
+            </>
+          ) : (
+            '▶ Importă'
+          )}
         </button>
       </div>
 
       {result && (
-        <div className={`text-xs rounded-lg px-3 py-2 text-left sm:text-right ${result.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+        <div className={`text-xs rounded-lg px-3 py-2 ${result.error ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
           {result.error
             ? `Eroare: ${result.error}`
-            : `✓ ${result.upserted} produse salvate din ${result.fetched} rânduri (${(result.durationMs/1000).toFixed(1)}s)`}
+            : `✓ ${result.upserted} produse din ${result.fetched} (${(result.durationMs / 1000).toFixed(1)}s)`}
         </div>
       )}
     </div>
