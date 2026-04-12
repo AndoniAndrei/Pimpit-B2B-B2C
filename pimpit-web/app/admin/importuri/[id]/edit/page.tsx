@@ -34,6 +34,11 @@ export default async function EditFeedPage({ params }: { params: { id: string } 
     secondary_join_key: dc.secondary_join_key || '',
     primary_join_key: dc.primary_join_key || '',
     image_api_url_template: dc.image_api_url_template || '',
+    driver: dc.driver || 'standard',
+    statusfalgar_base_url: dc.statusfalgar_base_url || 'https://api.statusfalgar.se',
+    statusfalgar_include_alloy_rims: dc.statusfalgar_include_alloy_rims !== false,
+    statusfalgar_include_steel_rims: dc.statusfalgar_include_steel_rims === true,
+    statusfalgar_include_accessories: dc.statusfalgar_include_accessories === true,
   };
 
   return (

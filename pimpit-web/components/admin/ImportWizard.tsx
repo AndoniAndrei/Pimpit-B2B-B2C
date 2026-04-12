@@ -16,6 +16,12 @@ interface FeedConfig {
   api_key: string;
   token: string;
   customer_id: string;
+  // Multi-endpoint driver (e.g. Statusfalgar merges Articles + NetPrices + Stock)
+  driver: 'standard' | 'statusfalgar';
+  statusfalgar_base_url: string;
+  statusfalgar_include_alloy_rims: boolean;
+  statusfalgar_include_steel_rims: boolean;
+  statusfalgar_include_accessories: boolean;
   // Secondary feed (merged by join key at import time)
   secondary_feed_url: string;
   secondary_feed_format: 'csv' | 'json' | 'xlsx';
@@ -91,19 +97,21 @@ const STANDARD_FIELDS: {
 }[] = [
   // ── Required ───────────────────────────────────────────────────────────────
   { key: 'part_number',    label: 'Cod produs (SKU)',     required: true,  fieldType: 'template', group: 'required',
-    hint: 'O coloană sau combinație: {SKU}-{Variant}' },
+    hint: 'O coloană sau combinație: {SKU}-{Variant} | Statusfalgar: ArticleNumber' },
   { key: 'brand',          label: 'Brand / Marcă',        required: true,  fieldType: 'template', group: 'required',
-    hint: 'Ex: {brand} sau valoare fixă "Borbet"' },
+    hint: 'Ex: {brand} sau valoare fixă "Borbet" | Statusfalgar: BrandName' },
   { key: 'name',           label: 'Denumire produs',      required: true,  fieldType: 'template', group: 'required',
-    hint: 'Ex: {brand} {size}" {width}/{et} {pcd}' },
+    hint: 'Ex: {brand} {size}" {width}/{et} {pcd} | Statusfalgar: Name' },
   { key: 'price_formula',  label: 'Formula preț RON',     required: true,  fieldType: 'formula',  group: 'required',
-    hint: 'Ex: {priceAfterDiscount} * 5 * 1.19' },
+    hint: 'Ex: {priceAfterDiscount} * 5 * 1.19 | Statusfalgar: NetPrice * 5 * 1.19' },
   // ── Spec ───────────────────────────────────────────────────────────────────
   { key: 'model',          label: 'Model',                required: false, fieldType: 'template', group: 'spec',
     hint: 'Ex: {model} — numele modelului jantei' },
   { key: 'ean',            label: 'EAN / Cod de bare',    required: false, fieldType: 'select',   group: 'spec' },
-  { key: 'stock',          label: 'Stoc disponibil',      required: false, fieldType: 'select',   group: 'spec' },
-  { key: 'stock_incoming', label: 'Stoc în tranzit',      required: false, fieldType: 'select',   group: 'spec' },
+  { key: 'stock',          label: 'Stoc disponibil',      required: false, fieldType: 'select',   group: 'spec',
+    hint: 'Statusfalgar: Stock (îmbinat automat din /api/Stock)' },
+  { key: 'stock_incoming', label: 'Stoc în tranzit',      required: false, fieldType: 'select',   group: 'spec',
+    hint: 'Statusfalgar: StockIncoming' },
   { key: 'size_split',     label: 'Size combinat (diametru × lățime)', required: false, fieldType: 'select', group: 'spec',
     hint: 'Coloană cu format "20x10.5" — extrage automat diametru și lățime. Lasă gol dacă ai coloane separate.' },
   { key: 'diameter',       label: 'Diametru (inch)',        required: false, fieldType: 'select', group: 'spec' },
@@ -145,7 +153,7 @@ const STANDARD_FIELDS: {
   { key: 'image_zip_id_4',  label: 'ID imagine ZIP #4',          required: false, fieldType: 'select', group: 'media' },
   // REST API-based images (Statusfalgar style)
   { key: 'image_api_id',    label: 'ID articol pt. API imagini', required: false, fieldType: 'select', group: 'media',
-    hint: 'Coloana cu ID-ul articolului pentru API-ul de imagini (ex: "Id" la Statusfalgar → GET /api/Images/{id})' },
+    hint: 'Statusfalgar: Id → trimite automat cerere la GET /api/Images/{Id} prin proxy-ul intern' },
 ];
 
 interface Props {
@@ -162,6 +170,11 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
   const [config, setConfig] = useState<FeedConfig>({
     name: '', feed_url: '', format: 'csv', delimiter: ',',
     auth_method: 'none', api_key: '', token: '', customer_id: '',
+    driver: 'standard',
+    statusfalgar_base_url: 'https://api.statusfalgar.se',
+    statusfalgar_include_alloy_rims: true,
+    statusfalgar_include_steel_rims: false,
+    statusfalgar_include_accessories: false,
     secondary_feed_url: '', secondary_feed_format: 'csv', secondary_feed_delimiter: ',',
     secondary_join_key: '', primary_join_key: '',
     image_api_url_template: '',
@@ -284,7 +297,24 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
     setError('');
     try {
       let res: Response;
-      if (uploadMode && uploadedFile) {
+      if (config.driver === 'statusfalgar') {
+        if (!config.customer_id.trim() || !config.token.trim()) {
+          setError('Customer ID și Token sunt obligatorii pentru driverul Statusfalgar');
+          setLoadingPreview(false); return;
+        }
+        res = await fetch('/api/admin/feeds/statusfalgar-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: config.customer_id,
+            token: config.token,
+            statusfalgar_base_url: config.statusfalgar_base_url,
+            statusfalgar_include_alloy_rims: config.statusfalgar_include_alloy_rims,
+            statusfalgar_include_steel_rims: config.statusfalgar_include_steel_rims,
+            statusfalgar_include_accessories: config.statusfalgar_include_accessories,
+          }),
+        });
+      } else if (uploadMode && uploadedFile) {
         const fd = new FormData();
         fd.append('file', uploadedFile);
         fd.append('format', config.format);
@@ -424,14 +454,14 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
         const res = await fetch(`/api/admin/feeds/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template, driver: config.driver, statusfalgar_base_url: config.statusfalgar_base_url, statusfalgar_include_alloy_rims: config.statusfalgar_include_alloy_rims, statusfalgar_include_steel_rims: config.statusfalgar_include_steel_rims, statusfalgar_include_accessories: config.statusfalgar_include_accessories }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la salvare'); return; }
       } else {
         const res = await fetch('/api/admin/feeds', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template }),
+          body: JSON.stringify({ ...config, field_mappings: mappingsToSave, secondary_feed_url: config.secondary_feed_url, secondary_feed_format: config.secondary_feed_format, secondary_feed_delimiter: config.secondary_feed_delimiter, secondary_join_key: config.secondary_join_key, primary_join_key: config.primary_join_key, image_api_url_template: config.image_api_url_template, driver: config.driver, statusfalgar_base_url: config.statusfalgar_base_url, statusfalgar_include_alloy_rims: config.statusfalgar_include_alloy_rims, statusfalgar_include_steel_rims: config.statusfalgar_include_steel_rims, statusfalgar_include_accessories: config.statusfalgar_include_accessories }),
         });
         if (!res.ok) { const d = await res.json(); setError(d.error || 'Eroare la creare'); return; }
         const d = await res.json();
@@ -535,6 +565,69 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                 onChange={e => setConfig(c => ({ ...c, name: e.target.value }))} />
             </div>
 
+            {/* Driver selection */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1.5">Tip driver</label>
+              <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
+                value={config.driver}
+                onChange={e => {
+                  const d = e.target.value as 'standard' | 'statusfalgar';
+                  setConfig(c => ({
+                    ...c,
+                    driver: d,
+                    auth_method: d === 'statusfalgar' ? 'basic_auth' : c.auth_method,
+                    image_api_url_template: d === 'statusfalgar' && !c.image_api_url_template
+                      ? 'https://api.statusfalgar.se/api/Images/{Id}'
+                      : c.image_api_url_template,
+                  }));
+                }}>
+                <option value="standard">Standard (CSV / JSON / XML / XLSX)</option>
+                <option value="statusfalgar">Statusfalgar REST API (Articles + NetPrices + Stock)</option>
+              </select>
+            </div>
+
+            {config.driver === 'statusfalgar' ? (
+              <div className="md:col-span-2 space-y-4 border rounded-xl p-5 bg-blue-50/50">
+                <div>
+                  <h3 className="text-sm font-semibold">Statusfalgar — configurare driver</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Driverul preia automat <strong>Articles</strong>, <strong>NetPrices</strong> și <strong>Stock</strong> în paralel și le îmbină după <code className="bg-muted px-1 rounded">Id</code>.
+                    Completează Customer ID și Token mai jos (autentificare Basic Auth).
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">URL de bază</label>
+                  <input className="w-full border rounded-lg px-3 py-2 text-sm bg-background font-mono"
+                    placeholder="https://api.statusfalgar.se"
+                    value={config.statusfalgar_base_url}
+                    onChange={e => setConfig(c => ({ ...c, statusfalgar_base_url: e.target.value }))} />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Producție: <code className="bg-muted px-1 rounded">https://api.statusfalgar.se</code> —
+                    Test: <code className="bg-muted px-1 rounded">https://api-test.statusfalgar.se</code>
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-2">Tipuri de produse de importat</label>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={config.statusfalgar_include_alloy_rims}
+                        onChange={e => setConfig(c => ({ ...c, statusfalgar_include_alloy_rims: e.target.checked }))} />
+                      Jante aluminiu (IncludeAlloyRims)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={config.statusfalgar_include_steel_rims}
+                        onChange={e => setConfig(c => ({ ...c, statusfalgar_include_steel_rims: e.target.checked }))} />
+                      Jante oțel (IncludeSteelRims)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={config.statusfalgar_include_accessories}
+                        onChange={e => setConfig(c => ({ ...c, statusfalgar_include_accessories: e.target.checked }))} />
+                      Accesorii (IncludeAccessories)
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="md:col-span-2">
               {/* URL / Upload toggle */}
               <div className="flex gap-1 mb-3 bg-muted rounded-lg p-1 w-fit">
@@ -590,7 +683,9 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                 </p>
               </>)}
             </div>
+            )}
 
+            {config.driver !== 'statusfalgar' && (<>
             <div>
               <label className="block text-sm font-medium mb-1.5">Format fișier</label>
               <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
@@ -615,16 +710,21 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
                 </select>
               </div>
             )}
+            </>)}
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1.5">Autentificare</label>
               <select className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background"
-                value={config.auth_method}
+                value={config.driver === 'statusfalgar' ? 'basic_auth' : config.auth_method}
+                disabled={config.driver === 'statusfalgar'}
                 onChange={e => setConfig(c => ({ ...c, auth_method: e.target.value as any }))}>
                 <option value="none">Fără autentificare</option>
                 <option value="api_key">API Key (înlocuit în URL)</option>
                 <option value="basic_auth">Basic Auth (user + parolă)</option>
               </select>
+              {config.driver === 'statusfalgar' && (
+                <p className="text-xs text-muted-foreground mt-1">Statusfalgar folosește întotdeauna Basic Auth. Completează Customer ID și Token mai jos.</p>
+              )}
             </div>
 
             {config.auth_method === 'api_key' && (
@@ -733,7 +833,7 @@ export default function ImportWizard({ supplierId, initialConfig, initialMapping
 
           <button onClick={handlePreview} disabled={loadingPreview || !config.feed_url.trim()}
             className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm disabled:opacity-50 mt-2">
-            {loadingPreview ? 'Se conectează și preia datele...' : 'Preia Preview →'}
+            {loadingPreview ? 'Se conectează și preia datele...' : config.driver === 'statusfalgar' ? 'Conectare Statusfalgar →' : 'Preia Preview →'}
           </button>
         </div>
       )}

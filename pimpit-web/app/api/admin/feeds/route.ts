@@ -41,9 +41,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, feed_url, format, auth_method, delimiter, api_key, token, customer_id, field_mappings,
     secondary_feed_url, secondary_feed_format, secondary_feed_delimiter, secondary_join_key, primary_join_key,
-    image_api_url_template } = body;
+    image_api_url_template,
+    driver, statusfalgar_base_url, statusfalgar_include_alloy_rims, statusfalgar_include_steel_rims, statusfalgar_include_accessories,
+  } = body;
 
-  if (!name || !feed_url) {
+  if (!name || (!feed_url && driver !== 'statusfalgar')) {
     return NextResponse.json({ error: 'Câmpurile obligatorii lipsesc' }, { status: 400 });
   }
 
@@ -71,6 +73,11 @@ export async function POST(req: NextRequest) {
   if (secondary_join_key) driver_config.secondary_join_key = secondary_join_key;
   if (primary_join_key) driver_config.primary_join_key = primary_join_key;
   if (image_api_url_template) driver_config.image_api_url_template = image_api_url_template;
+  if (driver) driver_config.driver = driver;
+  if (statusfalgar_base_url) driver_config.statusfalgar_base_url = statusfalgar_base_url;
+  if (statusfalgar_include_alloy_rims !== undefined) driver_config.statusfalgar_include_alloy_rims = statusfalgar_include_alloy_rims;
+  if (statusfalgar_include_steel_rims !== undefined) driver_config.statusfalgar_include_steel_rims = statusfalgar_include_steel_rims;
+  if (statusfalgar_include_accessories !== undefined) driver_config.statusfalgar_include_accessories = statusfalgar_include_accessories;
 
   const { data, error } = await db.from('suppliers').insert({
     id: nextId,

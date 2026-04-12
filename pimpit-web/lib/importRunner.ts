@@ -132,22 +132,33 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     );
   }
 
-  // Fetch feed
-  let feedBuffer: Buffer;
-  try {
-    feedBuffer = await fetchFeed(supplier);
-  } catch (e: any) {
-    throw new Error(`Nu s-a putut descărca feed-ul: ${e.message}`);
-  }
-
-  // Parse raw data
+  // ── Statusfalgar multi-endpoint driver ──────────────────────────────────
   let rows: Record<string, any>[];
-  try {
-    const { parseFeedBuffer } = await import('./feedParser');
-    const delimiter = dc.csv_delimiter || supplier.csv_delimiter || ',';
-    rows = parseFeedBuffer(feedBuffer, supplier.format || 'csv', delimiter);
-  } catch (e: any) {
-    throw new Error(`Eroare la parsarea fișierului: ${e.message}`);
+
+  if (dc.driver === 'statusfalgar') {
+    try {
+      const { fetchStatusfalgarRows } = await import('./statusfalgarDriver');
+      rows = await fetchStatusfalgarRows(supplier);
+      warnings.push(`Statusfalgar driver: ${rows.length} articole preluate (Articles + NetPrices + Stock)`);
+    } catch (e: any) {
+      throw new Error(`Statusfalgar driver: ${e.message}`);
+    }
+  } else {
+    // Standard fetch + parse
+    let feedBuffer: Buffer;
+    try {
+      feedBuffer = await fetchFeed(supplier);
+    } catch (e: any) {
+      throw new Error(`Nu s-a putut descărca feed-ul: ${e.message}`);
+    }
+
+    try {
+      const { parseFeedBuffer } = await import('./feedParser');
+      const delimiter = dc.csv_delimiter || supplier.csv_delimiter || ',';
+      rows = parseFeedBuffer(feedBuffer, supplier.format || 'csv', delimiter);
+    } catch (e: any) {
+      throw new Error(`Eroare la parsarea fișierului: ${e.message}`);
+    }
   }
 
   if (rows.length === 0) {
