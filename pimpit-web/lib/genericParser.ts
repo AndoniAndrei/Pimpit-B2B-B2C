@@ -295,8 +295,8 @@ export function parseRow(
     // Clamp numerics to avoid PostgreSQL overflow
     // If size_split is mapped, parse "DIAMETERxWIDTH" as fallback for missing diameter/width
     ...(() => {
-      let diameter = clampNum(getNum(row, mappings.diameter), 4);
-      let width    = clampNum(getNum(row, mappings.width),    4);
+      let diameter = clampNum(getNum(row, mappings.diameter), 3);
+      let width    = clampNum(getNum(row, mappings.width),    3);
       if (mappings.size_split && (diameter === undefined || width === undefined)) {
         const raw = getStr(row, mappings.size_split);
         if (raw) {
@@ -305,14 +305,17 @@ export function parseRow(
           if (parts.length >= 2) {
             const d = parseFloat(parts[0]);
             const w = parseFloat(parts[1]);
-            if (!isNaN(d) && diameter === undefined) diameter = clampNum(d, 4);
-            if (!isNaN(w) && width    === undefined) width    = clampNum(w, 4);
+            if (!isNaN(d) && diameter === undefined) diameter = clampNum(d, 3);
+            if (!isNaN(w) && width    === undefined) width    = clampNum(w, 3);
           }
         }
       }
+      // Semantic range: wheels are 10–30" diameter, 4–16" width
+      if (diameter !== undefined && (diameter < 10 || diameter > 30)) diameter = undefined;
+      if (width    !== undefined && (width    <  4 || width    > 16)) width    = undefined;
       return { diameter, width };
     })(),
-    widthRear:  clampNum(getNum(row, mappings.width_rear),  4),
+    widthRear:  clampNum(getNum(row, mappings.width_rear),  3),
     pcd: (() => {
       const raw = mappings.pcd?.includes('{')
         ? resolveTemplate(mappings.pcd, row) || undefined
@@ -320,7 +323,13 @@ export function parseRow(
       if (!raw) return undefined;
       return normalizeAndJoinPcds(raw) ?? undefined;
     })(),
-    etOffset:   clampNum(getNum(row, mappings.et_offset),   5),
+    // ET offset: real-world range is roughly -100 to +150 mm
+    etOffset:   (() => {
+      const v = clampNum(getNum(row, mappings.et_offset), 4);
+      if (v === undefined) return undefined;
+      if (v < -100 || v > 150) return undefined;
+      return v;
+    })(),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),
     images,
     youtubeLink:    getStr(row, mappings.youtube_link),

@@ -61,17 +61,43 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
 
   useEffect(() => { load() }, [load])
 
+  const FIELD_RANGES: Record<string, { min: number; max: number; label: string }> = {
+    price:          { min: 0,    max: 999999, label: 'Preț' },
+    price_b2b:      { min: 0,    max: 999999, label: 'Preț B2B' },
+    price_old:      { min: 0,    max: 999999, label: 'Preț vechi' },
+    stock:          { min: 0,    max: 9999999, label: 'Stoc' },
+    stock_incoming: { min: 0,    max: 9999999, label: 'Stoc viitor' },
+    diameter:       { min: 10,   max: 30,     label: 'Diametru (inch)' },
+    width:          { min: 4,    max: 16,     label: 'Lățime (J)' },
+    et_offset:      { min: -100, max: 150,    label: 'ET offset' },
+  }
+
   // Inline edit save
   async function saveEdit(id: string, field: string, value: string) {
-    const parsed = ['price', 'price_b2b', 'price_old', 'stock', 'stock_incoming', 'diameter', 'width', 'et_offset'].includes(field)
+    const isNumeric = ['price', 'price_b2b', 'price_old', 'stock', 'stock_incoming', 'diameter', 'width', 'et_offset'].includes(field)
+    const parsed = isNumeric
       ? (value === '' ? null : parseFloat(value))
       : field === 'is_active' ? value === 'true'
       : value || null
-    await fetch(`/api/admin/produse/${id}`, {
+
+    if (isNumeric && parsed !== null && parsed !== undefined) {
+      const range = FIELD_RANGES[field]
+      if (range && (isNaN(parsed as number) || (parsed as number) < range.min || (parsed as number) > range.max)) {
+        setMsg(`✗ ${range.label} trebuie să fie între ${range.min} și ${range.max}`)
+        return
+      }
+    }
+
+    const res = await fetch(`/api/admin/produse/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: parsed }),
     })
+    if (!res.ok) {
+      const data = await res.json()
+      setMsg(`✗ ${data.error || 'Eroare la salvare'}`)
+      return
+    }
     setEditing(null)
     load()
   }
