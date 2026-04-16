@@ -289,7 +289,14 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
                   <td className="p-3 max-w-[240px]">
                     <EditCell p={p} field="name" display={p.name} />
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {[p.diameter && `${p.diameter}"`, p.width && `${p.width}J`, p.pcd, p.et_offset && `ET${p.et_offset}`].filter(Boolean).join(' · ')}
+                      {[
+                        p.diameter && `${p.diameter}"`,
+                        p.width && `${p.width}J`,
+                        p.pcd,
+                        (p as any).et_offset_min != null && (p as any).et_offset_max != null
+                          ? `ET${(p as any).et_offset_min}-${(p as any).et_offset_max}`
+                          : p.et_offset != null && `ET${p.et_offset}`,
+                      ].filter(Boolean).join(' · ')}
                     </div>
                   </td>
                   <td className="p-3 text-right">

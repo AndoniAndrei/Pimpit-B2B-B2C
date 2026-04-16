@@ -142,10 +142,18 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 <span className="font-medium">{product.pcd}</span>
               </div>
             )}
-            {product.et_offset != null && (
+            {(product.et_offset != null || product.et_offset_min != null || product.et_offset_max != null) && (
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">ET</span>
-                <span className="font-medium">{product.et_offset}</span>
+                <span className="font-medium">
+                  {product.et_offset_min != null && product.et_offset_max != null
+                    ? `${product.et_offset_min} - ${product.et_offset_max}`
+                    : product.et_offset_min != null
+                    ? `≥ ${product.et_offset_min}`
+                    : product.et_offset_max != null
+                    ? `≤ ${product.et_offset_max}`
+                    : product.et_offset}
+                </span>
               </div>
             )}
             {product.center_bore != null && (

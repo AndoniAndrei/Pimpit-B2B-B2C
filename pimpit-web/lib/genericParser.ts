@@ -39,7 +39,9 @@ export interface FieldMappings {
   width_rear?: string;
   size_split?: string;  // column with concatenated "DIAMETERxWIDTH" (e.g. "20x10.5")
   pcd?: string;
-  et_offset?: string;
+  et_offset?: string;       // single ET value OR range like "20-40" OR sentinel 99999 for custom
+  et_offset_min?: string;   // dedicated column for minimum ET (BLANK/multi-fit wheels)
+  et_offset_max?: string;   // dedicated column for maximum ET (BLANK/multi-fit wheels)
   center_bore?: string;
   color?: string;
   finish?: string;
@@ -108,6 +110,8 @@ export interface ParsedProduct {
   widthRear?: number;
   pcd?: string;
   etOffset?: number;
+  etOffsetMin?: number;
+  etOffsetMax?: number;
   centerBore?: number;
   images: string[];
   youtubeLink?: string;
@@ -324,11 +328,36 @@ export function parseRow(
       return normalizeAndJoinPcds(raw) ?? undefined;
     })(),
     // ET offset: real-world range is roughly -100 to +150 mm
-    etOffset:   (() => {
-      const v = clampNum(getNum(row, mappings.et_offset), 4);
-      if (v === undefined) return undefined;
-      if (v < -100 || v > 150) return undefined;
-      return v;
+    // Supports: single value, range "20-40", or sentinel 99999 for custom-ET (BLANK wheels)
+    ...(() => {
+      // Prefer dedicated min/max columns if mapped
+      let etOffsetMin = clampNum(getNum(row, mappings.et_offset_min), 4);
+      let etOffsetMax = clampNum(getNum(row, mappings.et_offset_max), 4);
+      let etOffset: number | undefined;
+
+      const rawEt = mappings.et_offset ? String(row[mappings.et_offset] ?? '').trim() : '';
+      if (rawEt) {
+        // Try to parse range like "20-40" or "20/40" (negative start: "-40-10" split on last -)
+        const rangeMatch = rawEt.match(/^(-?\d+(?:\.\d+)?)\s*[-/]\s*(-?\d+(?:\.\d+)?)$/);
+        if (rangeMatch) {
+          const a = parseFloat(rangeMatch[1]);
+          const b = parseFloat(rangeMatch[2]);
+          if (!isNaN(a) && !isNaN(b)) {
+            etOffsetMin = etOffsetMin ?? Math.min(a, b);
+            etOffsetMax = etOffsetMax ?? Math.max(a, b);
+          }
+        } else {
+          const v = clampNum(getNum(row, mappings.et_offset), 4);
+          if (v !== undefined && v >= -100 && v <= 150) etOffset = v;
+          // values outside -100..150 (e.g. 99999 sentinel) → leave etOffset undefined
+        }
+      }
+
+      // Validate range bounds
+      if (etOffsetMin !== undefined && (etOffsetMin < -100 || etOffsetMin > 150)) etOffsetMin = undefined;
+      if (etOffsetMax !== undefined && (etOffsetMax < -100 || etOffsetMax > 150)) etOffsetMax = undefined;
+
+      return { etOffset, etOffsetMin, etOffsetMax };
     })(),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),
     images,
