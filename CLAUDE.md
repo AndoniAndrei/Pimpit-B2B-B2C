@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## READ FIRST — Source of Truth
+
+**Before writing or modifying any code, read [`APP_STATE.md`](./APP_STATE.md).** It is the single source of truth for:
+- All storefront pages, API routes and admin features
+- ETL pipeline (both `pimpit-web/lib/importRunner.ts` and standalone `pimpit-etl/`)
+- Complete database schema, enums, RPCs, RLS policies, migrations
+- Business logic (pricing formula, dedup, B2B, shipping, images)
+- Known issues / tech debt with file:line references
+- Roadmap of immediate optimizations
+
+**Rule:** Any functional change (new feature, schema change, API route, significant bugfix) MUST update `APP_STATE.md` in the same commit:
+- Update the relevant feature section
+- Add a one-line entry to the Change Log (section 12)
+- If a known issue is resolved, move it out of section 10 into the Change Log with `FIXED`
+
+This keeps `APP_STATE.md` accurate enough that future sessions can answer "what's built / where do we continue" without re-reading the codebase.
+
 ## Commands
 
 ```bash
