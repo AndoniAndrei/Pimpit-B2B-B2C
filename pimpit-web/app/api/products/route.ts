@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchInput } from '@/lib/utils'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -36,7 +37,8 @@ export async function GET(request: Request) {
   if (in_stock === 'true') query = query.gt('stock', 0)
   
   if (search) {
-    query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,part_number.ilike.%${search}%`)
+    const s = sanitizeSearchInput(search)
+    if (s) query = query.or(`name.ilike.%${s}%,brand.ilike.%${s}%,part_number.ilike.%${s}%`)
   }
 
   if (cursor) {

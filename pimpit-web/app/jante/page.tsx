@@ -4,6 +4,7 @@ import FilterSidebar from '@/components/catalog/FilterSidebar'
 import MobileFilters from '@/components/catalog/MobileFilters'
 import CatalogControls from '@/components/catalog/CatalogControls'
 import { buildPcdOrClause } from '@/lib/pcdUtils'
+import { sanitizeSearchInput } from '@/lib/utils'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
@@ -29,7 +30,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const PAGE_SIZE = 24
   const from = (page - 1) * PAGE_SIZE
 
-  const search = sp(searchParams.search)
+  const search = sanitizeSearchInput(sp(searchParams.search))
   const brands = spArr(searchParams.brand)
   const models = spArr(searchParams.model)
   const diameters = spArr(searchParams.diameter)
