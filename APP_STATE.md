@@ -384,9 +384,7 @@ Confirmate prin audit pe cod la data 2026-04-17.
 
 ### 10.1 Critice (de rezolvat prioritar)
 
-| # | Issue | Fișier | Impact |
-|---|---|---|---|
-| C2 | Bulk `price_formula` face **N update-uri separate** (1 + N queries). | `app/api/admin/produse/bulk/route.ts:57-71` | Performance + timeout la bulk mare |
+_(Toate fix-urile critice livrate. Vezi Change Log.)_
 
 ### 10.2 High
 
@@ -397,7 +395,7 @@ Confirmate prin audit pe cod la data 2026-04-17.
 | H3 | `/public/robots.txt` lipsă (nu există fișier). | — |
 | H4 | `ProduseClient.tsx` folosește `<img>` nativ în tabel, nu `next/image`. | linia ~256 |
 | H5 | Paginarea admin nu are upper bound pe `limit` → `?limit=999999` posibil. | `app/api/admin/produse/route.ts:26-27` |
-| H6 | Formula bulk fără limită de lungime / whitelist operatori. | `app/api/admin/produse/bulk/route.ts:61` |
+| H6 | Formula bulk fără whitelist operatori (lungimea e capată la 200 char). | `app/api/admin/produse/bulk/route.ts:62` |
 | H7 | Nu există rate limiting pe `/api/admin/*` (în special `sync`, `delete-all`, `import`). | toate rutele admin |
 
 ### 10.3 Medium / Low
@@ -419,7 +417,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 
 1. ~~**Fix auth GET admin produs** (C1)~~ — ✅ FIXED 2026-04-17.
 2. ~~**Validare Zod pentru `/api/orders`** (C3, C4)~~ — ✅ FIXED 2026-04-17.
-3. **Batch update în bulk price formula** (C2) — grupează în chunks de 100-250 cu `upsert` sau construiește query SQL raw cu CASE WHEN.
+3. ~~**Batch update în bulk price formula** (C2)~~ — ✅ FIXED 2026-04-17 (chunks de 50 paralele).
 4. ~~**Escape input la ILIKE search** (C5)~~ — ✅ FIXED 2026-04-17.
 5. **Cache user role în middleware** (H1) — încarcă `role` într-un cookie/JWT claim la login; elimină lookup per-request.
 6. **`public/robots.txt`** (H3) — include sitemap link.
@@ -440,6 +438,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-17 — **FIXED C1**: adăugat `checkAdmin()` pe GET/PATCH/DELETE în `app/api/admin/produse/[id]/route.ts`; și pe GET în `app/api/admin/produse/route.ts` (același pattern de info disclosure pe lista admin). — securitate API admin
 - 2026-04-17 — **FIXED C5**: helper `sanitizeSearchInput` (lib/utils.ts) aplicat în 4 puncte de search (`/api/products`, `/api/admin/produse`, `/jante`, `/accesorii`); strip `% _ , ( ) : " \` și cap 100 char pentru a preveni PostgREST filter injection. — securitate query
 - 2026-04-17 — **FIXED C3 + C4**: schemă Zod inline în `app/api/orders/route.ts` (address + contact + payment_method), `safeParse` cu 400 + field errors structurate. `app/checkout/page.tsx` — `minLength`/`maxLength` + `type="tel"` pe inputs (validare HTML5 client; serverul rămâne sursa de adevăr). — validare comenzi
+- 2026-04-17 — **FIXED C2**: `app/api/admin/produse/bulk/route.ts` price_formula trecut de la N update-uri secvențiale la chunks de 50 paralele (`Promise.all`). Bonus: cap `ids.length ≤ 5000`, cap `value` formulă ≤ 200 char (parțial H6), filter pentru rezultate non-finite/negative. Status 207 când unele update-uri eșuează. — performance bulk admin
 
 ---
 
