@@ -9,7 +9,20 @@ function adminClient() {
   )
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+async function checkAdmin(req: NextRequest) {
+  const anonClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} } }
+  )
+  const { data: { user } } = await anonClient.auth.getUser()
+  if (!user) return false
+  const { data } = await adminClient().from('users').select('role').eq('id', user.id).maybeSingle()
+  return data?.role === 'admin'
+}
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!await checkAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { data, error } = await adminClient().from('products').select('*').eq('id', params.id).maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Produsul nu a fost găsit' }, { status: 404 })
@@ -17,6 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!await checkAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const body = await req.json()
   const { data, error } = await adminClient().from('products').update(body).eq('id', params.id).select().maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -24,7 +38,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(data)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!await checkAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { error } = await adminClient().from('products').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { sanitizeSearchInput } from '@/lib/utils'
 
 function adminClient() {
   return createServerClient(
@@ -22,10 +23,11 @@ async function checkAdmin(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!await checkAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '50')
-  const search = searchParams.get('search') || ''
+  const search = sanitizeSearchInput(searchParams.get('search') || '')
   const brand = searchParams.get('brand') || ''
   const supplier = searchParams.get('supplier') || ''
   const active = searchParams.get('active')
