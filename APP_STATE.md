@@ -387,8 +387,6 @@ Confirmate prin audit pe cod la data 2026-04-17.
 | # | Issue | Fișier | Impact |
 |---|---|---|---|
 | C2 | Bulk `price_formula` face **N update-uri separate** (1 + N queries). | `app/api/admin/produse/bulk/route.ts:57-71` | Performance + timeout la bulk mare |
-| C3 | `/api/orders` **nu validează** `shipping_address`, `customer_email`, `customer_phone`, `customer_name`. Insert direct. | `app/api/orders/route.ts:6-7` | Date corupte + potențial stored XSS |
-| C4 | Form checkout trimite **orice** conținut ca address. Fără validare client nici server. | `app/checkout/page.tsx:16-34` | Data integrity |
 
 ### 10.2 High
 
@@ -420,7 +418,7 @@ Confirmate prin audit pe cod la data 2026-04-17.
 Ordinea recomandată (de rezolvat în sesiuni viitoare):
 
 1. ~~**Fix auth GET admin produs** (C1)~~ — ✅ FIXED 2026-04-17.
-2. **Validare Zod pentru `/api/orders`** (C3, C4) — schemă strictă pentru address + contact; respinge request-uri fără câmpuri minime; sanitizează stringuri.
+2. ~~**Validare Zod pentru `/api/orders`** (C3, C4)~~ — ✅ FIXED 2026-04-17.
 3. **Batch update în bulk price formula** (C2) — grupează în chunks de 100-250 cu `upsert` sau construiește query SQL raw cu CASE WHEN.
 4. ~~**Escape input la ILIKE search** (C5)~~ — ✅ FIXED 2026-04-17.
 5. **Cache user role în middleware** (H1) — încarcă `role` într-un cookie/JWT claim la login; elimină lookup per-request.
@@ -441,6 +439,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-17 — Initial APP_STATE created (audit complet, baseline) — `APP_STATE.md`, `CLAUDE.md`
 - 2026-04-17 — **FIXED C1**: adăugat `checkAdmin()` pe GET/PATCH/DELETE în `app/api/admin/produse/[id]/route.ts`; și pe GET în `app/api/admin/produse/route.ts` (același pattern de info disclosure pe lista admin). — securitate API admin
 - 2026-04-17 — **FIXED C5**: helper `sanitizeSearchInput` (lib/utils.ts) aplicat în 4 puncte de search (`/api/products`, `/api/admin/produse`, `/jante`, `/accesorii`); strip `% _ , ( ) : " \` și cap 100 char pentru a preveni PostgREST filter injection. — securitate query
+- 2026-04-17 — **FIXED C3 + C4**: schemă Zod inline în `app/api/orders/route.ts` (address + contact + payment_method), `safeParse` cu 400 + field errors structurate. `app/checkout/page.tsx` — `minLength`/`maxLength` + `type="tel"` pe inputs (validare HTML5 client; serverul rămâne sursa de adevăr). — validare comenzi
 
 ---
 

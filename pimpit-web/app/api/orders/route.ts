@@ -1,11 +1,43 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { z } from 'zod'
+
+const addressSchema = z.object({
+  street: z.string().trim().min(3).max(200),
+  city: z.string().trim().min(2).max(100),
+  county: z.string().trim().min(2).max(100),
+  postal_code: z.string().trim().max(20).optional().nullable(),
+  country: z.string().trim().max(100).optional().default('România')
+})
+
+const orderSchema = z.object({
+  shipping_address: addressSchema,
+  billing_address: addressSchema.optional().nullable(),
+  customer_name: z.string().trim().min(2).max(200),
+  customer_email: z.string().trim().email().max(255),
+  customer_phone: z.string().trim().min(6).max(20),
+  payment_method: z.literal('ramburs')
+})
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const { shipping_address, billing_address, customer_email, customer_phone, customer_name, payment_method } = body
-  
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Body JSON invalid' }, { status: 400 })
+  }
+
+  const parsed = orderSchema.safeParse(raw)
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors
+    const first = Object.entries(fieldErrors)[0]
+    const msg = first ? `${first[0]}: ${first[1]?.[0]}` : 'Date invalide'
+    return NextResponse.json({ error: msg, details: fieldErrors }, { status: 400 })
+  }
+
+  const { shipping_address, billing_address, customer_email, customer_phone, customer_name, payment_method } = parsed.data
+
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const sessionId = cookies().get('session_id')?.value

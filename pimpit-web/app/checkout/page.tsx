@@ -58,15 +58,15 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Nume complet</label>
-              <input name="name" required className="w-full border rounded-md px-3 py-2" />
+              <input name="name" required minLength={2} maxLength={200} className="w-full border rounded-md px-3 py-2" />
             </div>
             <div>
               <label className="block text-sm mb-1">Telefon</label>
-              <input name="phone" required className="w-full border rounded-md px-3 py-2" />
+              <input name="phone" type="tel" required minLength={6} maxLength={20} className="w-full border rounded-md px-3 py-2" />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm mb-1">Email</label>
-              <input name="email" type="email" required className="w-full border rounded-md px-3 py-2" />
+              <input name="email" type="email" required maxLength={255} className="w-full border rounded-md px-3 py-2" />
             </div>
           </div>
         </div>
@@ -76,19 +76,19 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className="block text-sm mb-1">Stradă și număr</label>
-              <input name="street" required className="w-full border rounded-md px-3 py-2" />
+              <input name="street" required minLength={3} maxLength={200} className="w-full border rounded-md px-3 py-2" />
             </div>
             <div>
               <label className="block text-sm mb-1">Oraș</label>
-              <input name="city" required className="w-full border rounded-md px-3 py-2" />
+              <input name="city" required minLength={2} maxLength={100} className="w-full border rounded-md px-3 py-2" />
             </div>
             <div>
               <label className="block text-sm mb-1">Județ</label>
-              <input name="county" required className="w-full border rounded-md px-3 py-2" />
+              <input name="county" required minLength={2} maxLength={100} className="w-full border rounded-md px-3 py-2" />
             </div>
             <div>
               <label className="block text-sm mb-1">Cod poștal</label>
-              <input name="postal_code" className="w-full border rounded-md px-3 py-2" />
+              <input name="postal_code" maxLength={20} className="w-full border rounded-md px-3 py-2" />
             </div>
           </div>
         </div>
