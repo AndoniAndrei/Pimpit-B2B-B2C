@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Before writing or modifying any code, read [`APP_STATE.md`](./APP_STATE.md).** It is the single source of truth for:
 - All storefront pages, API routes and admin features
-- ETL pipeline (both `pimpit-web/lib/importRunner.ts` and standalone `pimpit-etl/`)
+- ETL pipeline (single in-process path: `pimpit-web/lib/importRunner.ts`)
 - Complete database schema, enums, RPCs, RLS policies, migrations
 - Business logic (pricing formula, dedup, B2B, shipping, images)
 - Known issues / tech debt with file:line references
@@ -30,20 +30,15 @@ npm run start        # Start production server
 # Inside pimpit-web/
 npm run lint         # ESLint check
 npm run dev          # next dev
-
-# Inside pimpit-etl/
-npm run sync         # Run ETL sync (tsx src/index.ts)
-npm run build        # Compile TypeScript
 ```
 
 There are no automated test suites. Validation is done manually via the admin UI or by running the sync and checking `sync_logs`.
 
 ## Architecture
 
-This is a **B2B-B2C e-commerce platform** for wheel/rim/accessories aggregation from multiple suppliers. The monorepo has two packages:
+This is a **B2B-B2C e-commerce platform** for wheel/rim/accessories aggregation from multiple suppliers. The repo has one Next.js package:
 
-- **`pimpit-web/`** — Next.js 14 app (frontend + API routes). Contains both the storefront and the admin panel.
-- **`pimpit-etl/`** — Standalone Node.js CLI for scheduled ETL sync (separate process, deployed independently).
+- **`pimpit-web/`** — Next.js 14 app. Storefront, admin panel, API routes, AND the ETL runner (in-process, triggered manually from the admin UI).
 - **`supabase/`** — PostgreSQL migrations only.
 
 Backend is **Supabase** (Postgres + Auth + Storage). The web app uses `@supabase/ssr` with the service role key for admin operations (bypasses RLS). Auth uses `createClient()` from `lib/supabase/server.ts` for cookie-based user sessions.

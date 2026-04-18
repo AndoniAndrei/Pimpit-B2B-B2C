@@ -32,9 +32,8 @@ Pimpit este o platformă **B2B + B2C de e-commerce pentru jante (wheels) și acc
 | State (client) | Zustand (cart) |
 | Forms | react-hook-form + zod (parțial) |
 | Backend | Supabase (Postgres 15 + Auth + Storage) |
-| ETL (separat) | Node.js CLI standalone în `pimpit-etl/` (tsx + papaparse) |
+| ETL | În-proces în `pimpit-web/lib/importRunner.ts` (declanșat manual din admin UI) |
 | Hosting web | Vercel (presupus) |
-| Hosting ETL | Railway (declanșat via webhook `ETL_RAILWAY_URL`) |
 | Parsere feed | papaparse (CSV), XLSX (Excel), native JSON, fflate (ZIP) |
 
 **Node version:** presupus 20+ (nu e fixat în `.nvmrc`).
@@ -49,16 +48,11 @@ Pimpit este o platformă **B2B + B2C de e-commerce pentru jante (wheels) și acc
 ├── APP_STATE.md               # ← ACEST FIȘIER (source of truth)
 ├── README.md                  # Scurt, orientat utilizator
 ├── package.json               # Wrapper root (dev/build/start proxy pentru pimpit-web)
-├── pimpit-web/                # Next.js 14 — storefront + admin + API routes
+├── pimpit-web/                # Next.js 14 — storefront + admin + API routes + ETL in-process
 │   ├── app/                   # Route handlers și pages (App Router)
 │   ├── components/            # UI componente (shared, catalog, admin)
 │   ├── lib/                   # Utilități + business logic (importRunner, parsers, supabase clients)
 │   ├── middleware.ts          # Refresh sesiune auth
-│   └── package.json
-├── pimpit-etl/                # CLI standalone Node.js (sync scheduled extern)
-│   ├── src/
-│   │   ├── index.ts           # Entry point
-│   │   └── etl/               # driver, parsers, pricing, normalizer, sync
 │   └── package.json
 ├── supabase/
 │   └── migrations/            # 8 migrații SQL (001...008)
@@ -66,7 +60,7 @@ Pimpit este o platformă **B2B + B2C de e-commerce pentru jante (wheels) și acc
 ```
 
 **Import alias:** `@/*` → `pimpit-web/*`.
-**Comenzi principale:** `npm run dev` (root), `npm run lint` / `npm run build` (în `pimpit-web/`), `npm run sync` (în `pimpit-etl/`).
+**Comenzi principale:** `npm run dev` (root), `npm run lint` / `npm run build` (în `pimpit-web/`).
 
 **Nu există teste automate.** Validarea se face manual prin UI admin sau rulând sync și verificând `sync_logs`.
 
@@ -132,7 +126,7 @@ Toate rutele `/admin/*` sunt protejate de check în `app/admin/layout.tsx` (redi
 | `/admin/importuri/nou` | `app/admin/importuri/nou/page.tsx` | Form furnizor nou (wizard multi-step `ImportWizard.tsx`). |
 | `/admin/importuri/[id]/edit` | `app/admin/importuri/[id]/edit/page.tsx` | Editare config supplier. `force-dynamic` pentru a evita cache Next stale. |
 | `/admin/furnizori` | `app/admin/furnizori/page.tsx` | Listă furnizori cu pricing rules inline (base discount, multiplier, fixed cost, margin). |
-| `/admin/sincronizari` | `app/admin/sincronizari/page.tsx` + `SyncTrigger.tsx` | Istoric ultime 50 rulări ETL. Buton global sync (trigger Railway webhook). |
+| `/admin/sincronizari` | `app/admin/sincronizari/page.tsx` + `SyncTrigger.tsx` | Istoric ultime 50 rulări ETL. Buton global sync (rulează `runImportAll()` în-proces). |
 
 ### API admin
 
@@ -149,7 +143,7 @@ Toate rutele `/admin/*` sunt protejate de check în `app/admin/layout.tsx` (redi
 | `/api/admin/feeds/upload-preview` | POST | Preview CSV/XLSX/JSON uploaded. |
 | `/api/admin/feeds/statusfalgar-preview` | POST | Preview Statusfälgar multi-endpoint. |
 | `/api/admin/feeds/scan-column` | POST | Extract unique values dintr-o coloană (pentru maparea câmpurilor). |
-| `/api/admin/sync` | POST | Trigger global sync (webhook Railway). |
+| `/api/admin/sync` | POST | Rulează `runImportAll()` (toți furnizorii activi, secvențial). `maxDuration = 300s`. |
 | `/api/setup-admin` | POST | One-time setup admin inițial. |
 
 ### ImportWizard — pași
@@ -168,34 +162,24 @@ Toată config-ul ajunge în `suppliers.driver_config` (JSONB).
 
 ---
 
-## 6. ETL — Două implementări paralele (ATENȚIE!)
+## 6. ETL — Pipeline unic (în-proces în pimpit-web)
 
-**Observație importantă:** Există DOUĂ pipeline-uri ETL care fac lucruri similare dar diferite:
+### 6.1 `runImport(supplierId)` — sync per-furnizor
 
-### 6.1 `pimpit-web/lib/importRunner.ts` (in-process, declanșat din admin UI)
-
-- Entry: `runImport(supplierId)` apelat din `/api/admin/feeds/[id]/import/route.ts`.
+- Definit în `pimpit-web/lib/importRunner.ts`.
+- Apelat din `/api/admin/feeds/[id]/import/route.ts` (buton individual din admin) și implicit din `runImportAll()`.
 - Flow: fetch feed → `feedParser.parseFeedBuffer()` (CSV/JSON/XML/XLSX) → `genericParser.parseRow()` aplică `field_mappings` → dedup pe `(part_number, brand)` → batch upsert 250/lot în `products` și `product_sources` → post-upsert `imageImporter` pentru ZIP → log în `sync_logs`.
 - Driver special: `lib/statusfalgarDriver.ts` (multi-endpoint: Articles + NetPrices + Stock).
 - Timeout fetch: 180s. Timeout per batch: 120s.
 
-### 6.2 `pimpit-etl/` (CLI standalone, Railway scheduled)
+### 6.2 `runImportAll()` — sync global
 
-- Entry: `pimpit-etl/src/index.ts` → `syncAllSuppliers()` în `src/etl/sync.ts`.
-- Config-driven prin tabelele `suppliers` + `pricing_rules` + `supplier_transforms`.
-- Parseri supplier-specific în `src/etl/parsers.ts` (PARSER_MAP):
-  - `supplier-1`, `supplier-2` (Google Sheets)
-  - `wheeltrade` (CSV ;, API key, autodetect jante vs accesorii după coloanele `thickness`/`thread_size`)
-  - `felgeo` (Polish, CSV ;, token)
-  - `abs-wheels` (JSON, API key)
-  - `statusfalgar` (JSON, basic auth SEK→RON)
-  - `veemann` (CSV, suport `old_price_formula`)
-- Pricing universal 6 pași: `raw * (1 - baseDiscount) * baseMultiplier + fixedCost) * vatMultiplier * marginMultiplier / finalDivisor`.
-- Deduplicare: cel mai mic preț → stoc maxim → supplier ID cel mai mic.
-- Safety checks înainte de commit: minim 100 produse + ≥50% din count existent.
-- Post-sync: mark inactive produsele ne-sincronizate în ultimele 24h + refresh MV `filter_options`.
-
-**⚠ Riscul de divergență:** Logica poate drift-a între cele două path-uri. Orice schimbare de mapping/pricing trebuie replicată în ambele sau consolidată.
+- Definit în `pimpit-web/lib/importRunner.ts`.
+- Apelat din `/api/admin/sync` (buton "Sincronizează Acum" în `/admin/sincronizari`).
+- Iterează toți furnizorii cu `is_active=true` ordonați după `id` și apelează `runImport(id)` secvențial.
+- Per-supplier failures NU abandonează rularea — error e capturată în `ImportResult.errors` și loop-ul continuă cu următorul.
+- Returnează `{ totalSuppliers, succeeded, failed, results[] }`.
+- Plafonat de `maxDuration = 300s` pe rută (Vercel Pro+). Pentru sync care depășește, folosește butoanele individuale per furnizor.
 
 ### 6.3 Helpers comuni (în `pimpit-web/lib/`)
 
@@ -228,7 +212,7 @@ order_status_enum   → 'pending' | 'confirmed' | 'processing' | 'shipped' | 'de
 | `suppliers` | Furnizori + config (`driver_config` JSONB, `brand_whitelist/blacklist`, `csv_delimiter`, refs env) | PK `id` (SMALLINT), UNIQUE `slug` |
 | `pricing_rules` | Per-supplier: `base_discount`, `base_multiplier`, `fixed_cost`, `vat_multiplier`, `margin_multiplier`, `final_divisor`, `old_price_formula` | PK `id`, FK `supplier_id` |
 | `supplier_transforms` | Reguli transformare (dual_price, brand_remap, image_url_prefix, brand_whitelist). `sort_order` determină ordinea. | PK `id`, FK `supplier_id` |
-| `products` | Catalog unificat post-dedup. Câmpuri cheie: `part_number`, `brand`, `name`, `slug`, `product_type`, `diameter`, `width`, `pcd`, `et_offset`, `center_bore`, `price`, `price_old`, `price_b2b`, `images[]`, `stock`, `stock_incoming`, `winning_supplier_id`, `custom_fields` JSONB. Plus câmpuri extinse: `model`, `ean`, `weight`, `max_load`, `certificate_url`, `discontinued`, `is_active`, `last_synced_at`. | PK `id` UUID, UNIQUE `(part_number, brand)`, UNIQUE `slug` |
+| `products` | Catalog unificat post-dedup. Câmpuri cheie: `part_number`, `brand`, `name`, `slug`, `product_type`, `diameter`, `width`, `pcd`, `et_offset`, `et_min`, `et_max`, `center_bore`, `price`, `price_old`, `price_b2b`, `images[]`, `stock`, `stock_incoming`, `winning_supplier_id`, `custom_fields` JSONB. Plus câmpuri extinse: `model`, `ean`, `weight`, `max_load`, `certificate_url`, `discontinued`, `is_active`, `last_synced_at`. `et_min`/`et_max` descriu intervalul valid de ET atunci când furnizorul publică o listă (ex. `20,21,…,50`) sau un interval (`20-50`); pentru ET unic, `et_min = et_max = et_offset`. | PK `id` UUID, UNIQUE `(part_number, brand)`, UNIQUE `slug` |
 | `product_sources` | Audit trail: un rând per (product × supplier). `raw_price`, `raw_currency`, `calculated_price`, `raw_data` JSONB, `last_seen_at`. | PK `id`, UNIQUE `(part_number, brand, supplier_id)` |
 | `price_history` | Auto-populat prin trigger `trg_price_history` la UPDATE pe `price`/`price_b2b`. | PK `id`, FK `product_id`, index `(product_id DESC, recorded_at DESC)` |
 | `sync_logs` | Istoric rulări ETL. `status`, `products_fetched/inserted/updated/skipped`, `safety_check_*`, `error_*`, `duration_ms`. | PK `id` |
@@ -357,16 +341,10 @@ Pattern: `brand-name-diameterxwidth-pcd`. Coliziuni rezolvate cu sufix `part_num
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY       # bypass RLS pentru operații admin
-ETL_RAILWAY_URL                 # webhook pentru sync global
+SUPABASE_SERVICE_ROLE_KEY       # bypass RLS pentru operații admin + ETL
 NEXT_PUBLIC_SITE_URL            # default https://pimpit.ro (sitemap)
-```
 
-### ETL (`pimpit-etl`)
-
-```
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
+# Credentiale supplier (folosite la rulare prin suppliers.{api_key_ref|token_ref|customer_id_ref})
 WHEELTRADE_API_KEY
 ABS_WHEELS_API_KEY
 STATUSFALGAR_CUSTOMER_ID
@@ -384,11 +362,7 @@ Confirmate prin audit pe cod la data 2026-04-17.
 
 ### 10.1 Critice (de rezolvat prioritar)
 
-| # | Issue | Fișier | Impact |
-|---|---|---|---|
-| C2 | Bulk `price_formula` face **N update-uri separate** (1 + N queries). | `app/api/admin/produse/bulk/route.ts:57-71` | Performance + timeout la bulk mare |
-| C3 | `/api/orders` **nu validează** `shipping_address`, `customer_email`, `customer_phone`, `customer_name`. Insert direct. | `app/api/orders/route.ts:6-7` | Date corupte + potențial stored XSS |
-| C4 | Form checkout trimite **orice** conținut ca address. Fără validare client nici server. | `app/checkout/page.tsx:16-34` | Data integrity |
+_(Toate fix-urile critice livrate. Vezi Change Log.)_
 
 ### 10.2 High
 
@@ -399,7 +373,7 @@ Confirmate prin audit pe cod la data 2026-04-17.
 | H3 | `/public/robots.txt` lipsă (nu există fișier). | — |
 | H4 | `ProduseClient.tsx` folosește `<img>` nativ în tabel, nu `next/image`. | linia ~256 |
 | H5 | Paginarea admin nu are upper bound pe `limit` → `?limit=999999` posibil. | `app/api/admin/produse/route.ts:26-27` |
-| H6 | Formula bulk fără limită de lungime / whitelist operatori. | `app/api/admin/produse/bulk/route.ts:61` |
+| H6 | Formula bulk fără whitelist operatori (lungimea e capată la 200 char). | `app/api/admin/produse/bulk/route.ts:62` |
 | H7 | Nu există rate limiting pe `/api/admin/*` (în special `sync`, `delete-all`, `import`). | toate rutele admin |
 
 ### 10.3 Medium / Low
@@ -410,8 +384,8 @@ Confirmate prin audit pe cod la data 2026-04-17.
 - Lipsă `revalidate` / cache headers pe `/api/products` public.
 - Timeout-uri hardcoded în importRunner (180s / 120s).
 - Sincronizare log-uri doar în DB; fără integrare Sentry/DataDog.
-- **Divergență potențială între `pimpit-web/lib/importRunner.ts` și `pimpit-etl/src/etl/sync.ts`** — aceleași reguli implementate în două locuri.
 - `b2b_discount_pct` din `users` nu e aplicat nicăieri în cod.
+- **Sync global limitat de `maxDuration` Vercel** — pentru >7 furnizori sau feed-uri foarte mari (>5min total), butonul global poate trece de plafon. Workaround: butoanele individuale per furnizor.
 
 ---
 
@@ -420,14 +394,14 @@ Confirmate prin audit pe cod la data 2026-04-17.
 Ordinea recomandată (de rezolvat în sesiuni viitoare):
 
 1. ~~**Fix auth GET admin produs** (C1)~~ — ✅ FIXED 2026-04-17.
-2. **Validare Zod pentru `/api/orders`** (C3, C4) — schemă strictă pentru address + contact; respinge request-uri fără câmpuri minime; sanitizează stringuri.
-3. **Batch update în bulk price formula** (C2) — grupează în chunks de 100-250 cu `upsert` sau construiește query SQL raw cu CASE WHEN.
+2. ~~**Validare Zod pentru `/api/orders`** (C3, C4)~~ — ✅ FIXED 2026-04-17.
+3. ~~**Batch update în bulk price formula** (C2)~~ — ✅ FIXED 2026-04-17 (chunks de 50 paralele).
 4. ~~**Escape input la ILIKE search** (C5)~~ — ✅ FIXED 2026-04-17.
 5. **Cache user role în middleware** (H1) — încarcă `role` într-un cookie/JWT claim la login; elimină lookup per-request.
 6. **`public/robots.txt`** (H3) — include sitemap link.
 7. **`limit` cap + validare paginare admin** (H5).
 8. **Rate limiting** (H7) — middleware simplu pe `/api/admin/*` (token bucket, in-memory pentru MVP, Upstash Redis pentru prod).
-9. **Unificare ETL** — consolidează `importRunner.ts` și `pimpit-etl/` într-un pachet comun `packages/etl-core` (refactor mai mare — pentru iterație ulterioară).
+9. ~~**Unificare ETL**~~ — ✅ FIXED 2026-04-17 (eliminare `pimpit-etl/`, totul rulează în-proces din `pimpit-web/lib/importRunner.ts`).
 10. **Structured data JSON-LD** pentru produse (SEO).
 11. **Aplicare `b2b_discount_pct`** în `/api/products` dacă `price_b2b` e NULL dar user e B2B.
 
@@ -441,6 +415,12 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-17 — Initial APP_STATE created (audit complet, baseline) — `APP_STATE.md`, `CLAUDE.md`
 - 2026-04-17 — **FIXED C1**: adăugat `checkAdmin()` pe GET/PATCH/DELETE în `app/api/admin/produse/[id]/route.ts`; și pe GET în `app/api/admin/produse/route.ts` (același pattern de info disclosure pe lista admin). — securitate API admin
 - 2026-04-17 — **FIXED C5**: helper `sanitizeSearchInput` (lib/utils.ts) aplicat în 4 puncte de search (`/api/products`, `/api/admin/produse`, `/jante`, `/accesorii`); strip `% _ , ( ) : " \` și cap 100 char pentru a preveni PostgREST filter injection. — securitate query
+- 2026-04-17 — **FIXED C3 + C4**: schemă Zod inline în `app/api/orders/route.ts` (address + contact + payment_method), `safeParse` cu 400 + field errors structurate. `app/checkout/page.tsx` — `minLength`/`maxLength` + `type="tel"` pe inputs (validare HTML5 client; serverul rămâne sursa de adevăr). — validare comenzi
+- 2026-04-17 — **FIXED C2**: `app/api/admin/produse/bulk/route.ts` price_formula trecut de la N update-uri secvențiale la chunks de 50 paralele (`Promise.all`). Bonus: cap `ids.length ≤ 5000`, cap `value` formulă ≤ 200 char (parțial H6), filter pentru rezultate non-finite/negative. Status 207 când unele update-uri eșuează. — performance bulk admin
+- 2026-04-17 — **DROP Railway / unificare ETL**: șters `pimpit-etl/` și `.github/workflows/etl-sync.yml`. Adăugat `runImportAll()` în `lib/importRunner.ts` (iterare secvențială prin furnizori activi, errors per-supplier nu abortă restul). `/api/admin/sync` rulează în-proces cu `maxDuration = 300`. `SyncTrigger` confirm + summary count. Env var `ETL_RAILWAY_URL` eliminată. — infrastructură simplificată
+- 2026-04-18 — **ET range — Etapa A (data + import)**: migrație `009_et_range_pcd_choice.sql` adaugă `products.et_min/et_max` (+ check constraint, indexuri, backfill din `et_offset`) și `cart/order_items.selected_et/selected_pcd/needs_help_et/needs_help_pcd`. Helper nou `lib/etRangeParser.ts` detectează formate listă (`20,21,…,50`) și interval (`20-50`) — elimină cauza display-ului `ET99999`. `genericParser` populează `etMin/etMax` (+ `etOffset = min` pentru backward compat), `importRunner` persistă coloanele noi. Etapele B (RPC filtru cascadă cu intersecție interval), C (UI picker ET + PCD pe pagina produs) și D (propagare în cart + orders) rămân de făcut. — fix bug ET99999 + fundație pentru alegere ET/PCD
+- 2026-04-18 — **ET range — Etapa B (catalog filter)**: migrație `010_cascading_filter_et_range.sql` — `get_cascading_filter_options` primește `p_ets numeric[]`, întoarce faceta `ets` enumerată cu `generate_series(floor(et_min)::int, ceil(et_max)::int)`, aplică filtrare prin intersecție interval (`EXISTS (SELECT 1 FROM unnest(p_ets) e WHERE e BETWEEN et_min AND et_max)`) în toate CTE-urile. `/jante/page.tsx` acceptă `?et=35&et=40` și filtrează produsele prin OR de range-intersection. `/api/products` idem (acceptă `et_offset` single sau `et` multi). `ProductCard` + product detail afișează `ET20-50` când `et_min ≠ et_max` (eliminat complet artefactul `ET99999`). Etapa C (UI picker în product detail) și D (cart + orders) rămân. — catalog filter ET range
+- 2026-04-18 — **ET range — Etapa C + D (picker + cart/orders)**: componentă client nouă `app/jante/[slug]/ProductActions.tsx` — dropdown ET când `et_min ≠ et_max` (cu opțiune „Am nevoie de ajutor cu alegerea ET") și dropdown prindere când produsul are ≥ 3 PCD-uri normalizate (cu „Am nevoie de ajutor pentru alegerea prinderii"); selector cantitate; buton adaugă în coș cu fetch către `/api/cart`. Pagina produs calculează integer ET list (`Array.from` pe `[ceil(et_min), floor(et_max)]`) și lista PCD din `splitAndNormalizePcds`. `/api/cart` POST validat cu Zod (`selected_et`, `selected_pcd`, `needs_help_et`, `needs_help_pcd`) și upsert-ul persistă coloanele. `/api/orders` POST snapshot-ează selecțiile în `order_items`. `/cos/page.tsx` arată selecțiile și mesajul de asistență sub fiecare produs. `CartItem` extins în `lib/types.ts`. — fluxul complet ET/PCD customer-facing
 
 ---
 

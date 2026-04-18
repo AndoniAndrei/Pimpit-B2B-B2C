@@ -3,6 +3,8 @@ import { createClient as createBrowserClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import PriceDisplay from '@/components/catalog/PriceDisplay'
 import ProductImage from '@/components/catalog/ProductImage'
+import ProductActions from './ProductActions'
+import { splitAndNormalizePcds } from '@/lib/pcdUtils'
 
 export const revalidate = 3600 // ISR 1 hour
 
@@ -51,6 +53,22 @@ export default async function ProductPage({ params }: { params: { slug: string }
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).maybeSingle()
     isB2B = profile?.role === 'customer_b2b'
   }
+
+  // ET picker options: enumerate every integer offset inside [et_min, et_max].
+  // Empty array signals "no picker needed" (single value or no range).
+  const etMin: number | null = product.et_min ?? null
+  const etMax: number | null = product.et_max ?? null
+  const etValues: number[] =
+    etMin != null && etMax != null && etMin !== etMax
+      ? Array.from(
+          { length: Math.floor(etMax) - Math.ceil(etMin) + 1 },
+          (_, i) => Math.ceil(etMin) + i,
+        )
+      : []
+
+  // PCD picker kicks in at 3+ fitments (user spec — single/double bolt stays as-is).
+  const allPcds = product.pcd ? splitAndNormalizePcds(product.pcd) : []
+  const pcdOptions = allPcds.length >= 3 ? allPcds : []
 
   return (
     <div className="container mx-auto py-6 sm:py-12 px-4">
@@ -142,10 +160,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 <span className="font-medium">{product.pcd}</span>
               </div>
             )}
-            {product.et_offset != null && (
+            {(product.et_offset != null || product.et_min != null) && (
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">ET</span>
-                <span className="font-medium">{product.et_offset}</span>
+                <span className="font-medium">
+                  {product.et_min != null && product.et_max != null && product.et_min !== product.et_max
+                    ? `${product.et_min} – ${product.et_max}`
+                    : product.et_min ?? product.et_offset}
+                </span>
               </div>
             )}
             {product.center_bore != null && (
@@ -220,12 +242,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
             </a>
           )}
 
-          <button 
-            disabled={product.stock === 0}
-            className="w-full bg-primary text-primary-foreground py-4 rounded-lg font-bold text-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Adaugă în coș
-          </button>
+          <ProductActions
+            productId={product.id}
+            stock={product.stock ?? 0}
+            etValues={etValues}
+            etMin={etMin}
+            etMax={etMax}
+            pcdOptions={pcdOptions}
+          />
         </div>
       </div>
     </div>

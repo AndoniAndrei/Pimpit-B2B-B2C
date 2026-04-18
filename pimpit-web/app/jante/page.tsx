@@ -36,6 +36,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   const diameters = spArr(searchParams.diameter)
   const widths = spArr(searchParams.width)
   const pcds = spArr(searchParams.pcd)
+  const ets = spArr(searchParams.et).map(Number).filter(n => !isNaN(n))
   const colors = spArr(searchParams.color)
   const finishes = spArr(searchParams.finish)
   const priceMin = parseInt(sp(searchParams.price_min) || '0')
@@ -44,7 +45,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   // ── Products query (jante only) ─────────────────────────────────────────────
   let query = db.from('products')
-    .select('id,slug,part_number,brand,model,name,price,price_old,price_b2b,stock,stock_incoming,images,diameter,width,pcd,et_offset,center_bore,color,finish', { count: 'exact' })
+    .select('id,slug,part_number,brand,model,name,price,price_old,price_b2b,stock,stock_incoming,images,diameter,width,pcd,et_offset,et_min,et_max,center_bore,color,finish', { count: 'exact' })
     .eq('is_active', true)
     .eq('product_type', 'jante')
     .range(from, from + PAGE_SIZE - 1)
@@ -59,6 +60,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   if (pcds.length) {
     const pcdFilter = pcds.map(buildPcdOrClause).join(',');
     query = query.or(pcdFilter);
+  }
+  // ET range intersection: keep a product if any selected ET falls inside
+  // [et_min, et_max]. Single-value products have et_min = et_max (migration 009
+  // backfill), so equality still works naturally.
+  if (ets.length) {
+    const etClause = ets.map(v => `and(et_min.lte.${v},et_max.gte.${v})`).join(',');
+    query = query.or(etClause);
   }
   if (colors.length) query = query.in('color', colors)
   if (finishes.length) query = query.in('finish', finishes)
@@ -85,6 +93,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     p_diameters: diameters.length ? diameters.map(Number) : null,
     p_widths:    widths.length    ? widths.map(Number)    : null,
     p_pcds:      pcds.length      ? pcds                  : null,
+    p_ets:       ets.length       ? ets                   : null,
     p_colors:    colors.length    ? colors                : null,
     p_finishes:  finishes.length  ? finishes              : null,
     p_price_min: priceMin  || null,
@@ -97,6 +106,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     diameters: (opts?.diameters ?? []) as number[],
     widths:    (opts?.widths    ?? []) as number[],
     pcds:      (opts?.pcds      ?? []) as string[],
+    ets:       (opts?.ets       ?? []) as number[],
     colors:    (opts?.colors    ?? []) as string[],
     finishes:  (opts?.finishes  ?? []) as string[],
     priceMin:  Math.floor(opts?.price_min ?? 0),
@@ -105,7 +115,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
 
   const totalPages = Math.ceil((count || 0) / PAGE_SIZE)
   const activeFilterCount = brands.length + models.length + diameters.length + widths.length + pcds.length +
-    colors.length + finishes.length + (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
+    ets.length + colors.length + finishes.length + (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
 
   return (
     <div className="bg-gray-50 min-h-screen">

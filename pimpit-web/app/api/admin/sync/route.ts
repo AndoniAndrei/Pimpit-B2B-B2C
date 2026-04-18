@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServerClient } from '@supabase/ssr'
+import { runImportAll } from '@/lib/importRunner'
+
+// Sync touches every active supplier in sequence; needs the longest window
+// the platform allows. 300s is the Vercel Pro/Enterprise cap.
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 
 function makeAdminClient() {
   return createServerClient(
@@ -15,18 +21,14 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await makeAdminClient().from('users').select('role').eq('id', user.id).maybeSingle()
+  const { data: profile } = await makeAdminClient()
+    .from('users').select('role').eq('id', user.id).maybeSingle()
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const railwayUrl = process.env.ETL_RAILWAY_URL
-  if (!railwayUrl) {
-    return NextResponse.json({ error: 'ETL_RAILWAY_URL not configured' }, { status: 500 })
-  }
-
   try {
-    fetch(railwayUrl, { method: 'POST' }).catch(console.error)
-    return NextResponse.json({ success: true, message: 'Sync triggered' })
+    const summary = await runImportAll()
+    return NextResponse.json({ success: true, ...summary })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ error: e?.message ?? 'Sync failed' }, { status: 500 })
   }
 }

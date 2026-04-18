@@ -45,6 +45,22 @@ export default function CartPage() {
                 <div>
                   <h3 className="font-semibold">{item.product.brand} {item.product.name}</h3>
                   <p className="text-sm text-muted-foreground">Cod: {item.product.part_number}</p>
+                  {(item.selected_et != null || item.needs_help_et || item.selected_pcd || item.needs_help_pcd) && (
+                    <ul className="mt-2 text-xs space-y-0.5">
+                      {item.selected_et != null && (
+                        <li><span className="text-muted-foreground">ET ales:</span> <span className="font-medium">{item.selected_et}</span></li>
+                      )}
+                      {item.needs_help_et && (
+                        <li className="text-amber-700">ET: te contactăm pentru asistență</li>
+                      )}
+                      {item.selected_pcd && (
+                        <li><span className="text-muted-foreground">Prindere:</span> <span className="font-medium">{item.selected_pcd}</span></li>
+                      )}
+                      {item.needs_help_pcd && (
+                        <li className="text-amber-700">Prindere: te contactăm pentru asistență</li>
+                      )}
+                    </ul>
+                  )}
                 </div>
                 <div className="flex justify-between items-end">
                   <div className="text-sm">Cantitate: <span className="font-bold">{item.quantity}</span></div>

@@ -28,11 +28,23 @@ function StockBadge({ stock, stockIncoming }: { stock: number; stockIncoming: nu
 }
 
 export default function ProductCard({ product, isB2B }: { product: Product; isB2B: boolean }) {
+  // Prefer the range (et_min..et_max) when the supplier published multiple valid
+  // offsets. For single-offset wheels et_min = et_max, so we fall back to the
+  // legacy et_offset label. et_offset may be missing on very old rows that
+  // pre-date migration 009, hence the || chain.
+  const etLabel = (() => {
+    const min = product.et_min;
+    const max = product.et_max;
+    if (min != null && max != null && min !== max) return `ET${min}-${max}`;
+    const single = min ?? product.et_offset;
+    return single != null ? `ET${single}` : null;
+  })();
+
   const specs = [
     product.diameter && `Ø${product.diameter}"`,
     product.width && `${product.width}J`,
     product.pcd,
-    product.et_offset !== null && product.et_offset !== undefined && `ET${product.et_offset}`,
+    etLabel,
     product.center_bore && `CB${product.center_bore}`,
   ].filter(Boolean).join('  ·  ');
 

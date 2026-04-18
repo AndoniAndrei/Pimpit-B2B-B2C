@@ -22,7 +22,12 @@ async function checkAdmin(): Promise<boolean> {
 export async function POST(req: NextRequest) {
   if (!await checkAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { ids, action, value } = await req.json()
-  if (!ids?.length || !action) return NextResponse.json({ error: 'ids și action sunt obligatorii' }, { status: 400 })
+  if (!Array.isArray(ids) || ids.length === 0 || !action) {
+    return NextResponse.json({ error: 'ids și action sunt obligatorii' }, { status: 400 })
+  }
+  if (ids.length > 5000) {
+    return NextResponse.json({ error: 'Prea multe produse selectate (max 5000 per cerere)' }, { status: 400 })
+  }
 
   const db = adminClient()
 
@@ -54,21 +59,37 @@ export async function POST(req: NextRequest) {
 
   if (action === 'price_formula') {
     // value = formula like "{price} * 1.10" where {price} references current price
+    if (typeof value !== 'string' || value.length === 0 || value.length > 200) {
+      return NextResponse.json({ error: 'Formulă invalidă (max 200 caractere)' }, { status: 400 })
+    }
+
     const { data: products, error: fetchErr } = await db.from('products').select('id, price').in('id', ids)
     if (fetchErr) return NextResponse.json({ error: fetchErr.message }, { status: 500 })
 
-    const updates = products!.map(p => {
-      const newPrice = evaluateFormula(value, { price: p.price })
-      return { id: p.id, price: Math.round(newPrice * 100) / 100 }
-    })
+    const updates: { id: string; price: number }[] = []
+    for (const p of products ?? []) {
+      const computed = evaluateFormula(value, { price: p.price })
+      if (!Number.isFinite(computed) || computed < 0) continue
+      updates.push({ id: p.id, price: Math.round(computed * 100) / 100 })
+    }
 
     const errors: string[] = []
-    for (const u of updates) {
-      const { error } = await db.from('products').update({ price: u.price }).eq('id', u.id)
-      if (error) errors.push(error.message)
+    const CHUNK = 50
+    for (let i = 0; i < updates.length; i += CHUNK) {
+      const chunk = updates.slice(i, i + CHUNK)
+      const results = await Promise.all(
+        chunk.map(u => db.from('products').update({ price: u.price }).eq('id', u.id))
+      )
+      for (const r of results) if (r.error) errors.push(r.error.message)
     }
-    if (errors.length) return NextResponse.json({ error: errors[0] }, { status: 500 })
-    return NextResponse.json({ updated: ids.length })
+    if (errors.length) {
+      return NextResponse.json({
+        error: errors[0],
+        updated: updates.length - errors.length,
+        failed: errors.length,
+      }, { status: 207 })
+    }
+    return NextResponse.json({ updated: updates.length, skipped: ids.length - updates.length })
   }
 
   if (action === 'set_price') {
