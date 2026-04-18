@@ -86,7 +86,13 @@ export async function POST(request: Request) {
       product_image: p.images?.[0] || null,
       unit_price: unitPrice,
       quantity: item.quantity,
-      total_price: totalPrice
+      total_price: totalPrice,
+      // Snapshot the customer's ET / PCD selection (or "needs help" flags)
+      // at checkout time; the cart row is discarded right after.
+      selected_et: item.selected_et ?? null,
+      selected_pcd: item.selected_pcd ?? null,
+      needs_help_et: !!item.needs_help_et,
+      needs_help_pcd: !!item.needs_help_pcd,
     })
   }
 

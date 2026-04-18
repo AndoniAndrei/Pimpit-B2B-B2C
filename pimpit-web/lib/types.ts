@@ -45,6 +45,10 @@ export interface CartItem {
   product_id: string;
   quantity: number;
   product: Product;
+  selected_et?: number | null;
+  selected_pcd?: string | null;
+  needs_help_et?: boolean;
+  needs_help_pcd?: boolean;
 }
 
 export interface UserProfile {
