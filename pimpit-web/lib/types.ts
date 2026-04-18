@@ -12,6 +12,8 @@ export interface Product {
   width_rear?: number;
   et_offset?: number;
   et_offset_rear?: number;
+  et_min?: number;
+  et_max?: number;
   center_bore?: number;
   pcd?: string;
   pcd_secondary?: string;

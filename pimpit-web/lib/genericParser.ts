@@ -1,6 +1,7 @@
 import { evaluateFormula } from './formulaEvaluator';
 import { parseSmartNumber } from './priceParser';
 import { normalizeAndJoinPcds } from './pcdUtils';
+import { parseEtRange } from './etRangeParser';
 
 /**
  * Resolve a template string with {column_name} variable substitution.
@@ -108,6 +109,8 @@ export interface ParsedProduct {
   widthRear?: number;
   pcd?: string;
   etOffset?: number;
+  etMin?: number;
+  etMax?: number;
   centerBore?: number;
   images: string[];
   youtubeLink?: string;
@@ -320,7 +323,24 @@ export function parseRow(
       if (!raw) return undefined;
       return normalizeAndJoinPcds(raw) ?? undefined;
     })(),
-    etOffset:   clampNum(getNum(row, mappings.et_offset),   5),
+    ...(() => {
+      // ET may be a single value, a dash interval ("20-50"), or a continuous
+      // list ("20,21,…,50"). parseSmartNumber would mangle the list variants,
+      // so parse the raw string with parseEtRange and fall back to the legacy
+      // numeric read (which supports European decimals with text suffixes).
+      const raw = getStr(row, mappings.et_offset);
+      const range = raw ? parseEtRange(raw) : null;
+      if (range) {
+        const min = clampNum(range.min, 5);
+        const max = clampNum(range.max, 5);
+        // etOffset stays populated (= min) so callers that only know the old
+        // column keep working; consumers that care about the interval read
+        // et_min / et_max directly.
+        return { etOffset: min, etMin: min, etMax: max };
+      }
+      const num = clampNum(getNum(row, mappings.et_offset), 5);
+      return { etOffset: num, etMin: num, etMax: num };
+    })(),
     centerBore: clampNum(getNum(row, mappings.center_bore), 5),
     images,
     youtubeLink:    getStr(row, mappings.youtube_link),

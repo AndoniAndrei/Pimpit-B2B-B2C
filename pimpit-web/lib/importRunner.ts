@@ -261,6 +261,8 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
         width:        p.width        ?? null,
         width_rear:   p.widthRear    ?? null,
         et_offset:    p.etOffset     ?? null,
+        et_min:       p.etMin        ?? null,
+        et_max:       p.etMax        ?? null,
         center_bore:  p.centerBore   ?? null,
         pcd:          p.pcd          ?? null,
         color:        p.color        ?? null,
