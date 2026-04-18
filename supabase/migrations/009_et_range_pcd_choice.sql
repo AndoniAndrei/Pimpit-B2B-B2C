@@ -22,9 +22,17 @@
 -- ============================================================
 
 -- ── 1. products: et range ────────────────────────────────────────────────────
+-- NUMERIC(8,2) (up to ±999999.99) is deliberately wider than a real-world ET
+-- will ever be, so we never overflow when copying legacy `et_offset` values
+-- that may have been clamped to 5 integer digits by an older import run.
+-- Widen the columns if a previous attempt created them narrower; this also
+-- turns the migration into a safe re-run after a failed first attempt.
 ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS et_min NUMERIC(6,2),
-  ADD COLUMN IF NOT EXISTS et_max NUMERIC(6,2);
+  ADD COLUMN IF NOT EXISTS et_min NUMERIC(8,2),
+  ADD COLUMN IF NOT EXISTS et_max NUMERIC(8,2);
+
+ALTER TABLE products ALTER COLUMN et_min TYPE NUMERIC(8,2);
+ALTER TABLE products ALTER COLUMN et_max TYPE NUMERIC(8,2);
 
 -- Mirror existing et_offset so range queries "just work" for legacy rows.
 UPDATE products
