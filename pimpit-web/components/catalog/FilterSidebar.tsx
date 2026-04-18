@@ -10,6 +10,7 @@ interface FilterOptions {
   diameters: number[];
   widths: number[];
   pcds: string[];
+  ets?: number[];
   colors: string[];
   finishes: string[];
   priceMin: number;

@@ -10,7 +10,13 @@ export async function GET(request: Request) {
   const diameter = searchParams.get('diameter')
   const width = searchParams.get('width')
   const pcd = searchParams.get('pcd')
-  const et_offset = searchParams.get('et_offset')
+  // ET accepts either a single value (?et_offset=35) or multi (?et=35&et=40)
+  const etValues = [
+    ...searchParams.getAll('et'),
+    ...(searchParams.get('et_offset') ? [searchParams.get('et_offset')!] : []),
+  ]
+    .map(v => parseFloat(v))
+    .filter(v => !isNaN(v))
   const product_type = searchParams.get('product_type')
   const price_min = searchParams.get('price_min')
   const price_max = searchParams.get('price_max')
@@ -30,7 +36,14 @@ export async function GET(request: Request) {
   if (diameter) query = query.eq('diameter', parseFloat(diameter))
   if (width) query = query.eq('width', parseFloat(width))
   if (pcd) query = query.eq('pcd', pcd)
-  if (et_offset) query = query.eq('et_offset', parseFloat(et_offset))
+  // ET filter: match products whose [et_min, et_max] contains any requested value.
+  // Built as OR of per-value range-intersection predicates.
+  if (etValues.length) {
+    const etClause = etValues
+      .map(v => `and(et_min.lte.${v},et_max.gte.${v})`)
+      .join(',')
+    query = query.or(etClause)
+  }
   if (product_type) query = query.eq('product_type', product_type)
   if (price_min) query = query.gte('price', parseFloat(price_min))
   if (price_max) query = query.lte('price', parseFloat(price_max))
