@@ -411,3 +411,62 @@ export async function runImport(supplierId: number): Promise<ImportResult> {
     durationMs,
   };
 }
+
+// ─── Global orchestrator: sync every active supplier in sequence ───────────
+
+export interface ImportAllSummary {
+  startedAt: string;
+  finishedAt: string;
+  totalSuppliers: number;
+  succeeded: number;
+  failed: number;
+  results: ImportResult[];
+}
+
+export async function runImportAll(): Promise<ImportAllSummary> {
+  const startedAt = new Date().toISOString();
+  const db = makeAdminClient();
+  const { data: suppliers, error } = await db
+    .from('suppliers')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('id');
+
+  if (error) throw new Error(`Failed to load suppliers: ${error.message}`);
+
+  const results: ImportResult[] = [];
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const s of suppliers ?? []) {
+    try {
+      const r = await runImport(s.id);
+      results.push(r);
+      if (r.errors.length === 0) succeeded++;
+      else failed++;
+    } catch (e: any) {
+      results.push({
+        supplierId: s.id,
+        supplierName: s.name,
+        fetched: 0,
+        parsed: 0,
+        upserted: 0,
+        skipped: 0,
+        zeroPriceImported: 0,
+        errors: [String(e?.message ?? e)],
+        warnings: [],
+        durationMs: 0,
+      });
+      failed++;
+    }
+  }
+
+  return {
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    totalSuppliers: suppliers?.length ?? 0,
+    succeeded,
+    failed,
+    results,
+  };
+}
