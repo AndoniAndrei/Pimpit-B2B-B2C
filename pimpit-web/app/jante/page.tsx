@@ -86,7 +86,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
   // ── Filter options via PostgreSQL RPC (cascading faceted search) ─────────────
   // Single DB round-trip using SELECT DISTINCT — no Supabase row-limit issues.
   // The function applies "exclude self" logic per dimension (see migration 002).
-  const { data: opts } = await db.rpc('get_cascading_filter_options', {
+  const { data: opts, error: optsError } = await db.rpc('get_cascading_filter_options', {
     p_search:    search         || null,
     p_brands:    brands.length    ? brands                : null,
     p_models:    models.length    ? models                : null,
@@ -99,6 +99,13 @@ export default async function CatalogPage({ searchParams }: { searchParams: Sear
     p_price_min: priceMin  || null,
     p_price_max: priceMax  || null,
   })
+
+  if (optsError) {
+    // Surfacing this in the logs is the fastest way to diagnose
+    // "only Preț (RON) shows up" — that's what an empty/failed RPC looks like
+    // in the UI. Usually means migration 010 hasn't run against this DB yet.
+    console.error('[jante] get_cascading_filter_options failed:', optsError.message)
+  }
 
   const filterOptions = {
     brands:    (opts?.brands    ?? []) as string[],
