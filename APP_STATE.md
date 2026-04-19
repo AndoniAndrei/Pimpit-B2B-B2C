@@ -267,6 +267,9 @@ Policy: public READ, service_role WRITE.
 006_accesorii_filter_rpc.sql           → RPC separat accesorii
 007_product_images_bucket.sql          → bucket storage
 008_feed_format_xlsx.sql               → XLSX în enum
+009_et_range_pcd_choice.sql            → products.et_min/et_max + cart/order_items.selected_et/selected_pcd/needs_help_*
+010_cascading_filter_et_range.sql      → RPC fațetat acceptă p_ets[] + intersecție interval ET
+011_cleanup_corrupt_et.sql             → NULL pe et_offset/et_min/et_max când abs > 999 (artefacte vechi)
 ```
 
 ---
@@ -421,6 +424,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-18 — **ET range — Etapa A (data + import)**: migrație `009_et_range_pcd_choice.sql` adaugă `products.et_min/et_max` (+ check constraint, indexuri, backfill din `et_offset`) și `cart/order_items.selected_et/selected_pcd/needs_help_et/needs_help_pcd`. Helper nou `lib/etRangeParser.ts` detectează formate listă (`20,21,…,50`) și interval (`20-50`) — elimină cauza display-ului `ET99999`. `genericParser` populează `etMin/etMax` (+ `etOffset = min` pentru backward compat), `importRunner` persistă coloanele noi. Etapele B (RPC filtru cascadă cu intersecție interval), C (UI picker ET + PCD pe pagina produs) și D (propagare în cart + orders) rămân de făcut. — fix bug ET99999 + fundație pentru alegere ET/PCD
 - 2026-04-18 — **ET range — Etapa B (catalog filter)**: migrație `010_cascading_filter_et_range.sql` — `get_cascading_filter_options` primește `p_ets numeric[]`, întoarce faceta `ets` enumerată cu `generate_series(floor(et_min)::int, ceil(et_max)::int)`, aplică filtrare prin intersecție interval (`EXISTS (SELECT 1 FROM unnest(p_ets) e WHERE e BETWEEN et_min AND et_max)`) în toate CTE-urile. `/jante/page.tsx` acceptă `?et=35&et=40` și filtrează produsele prin OR de range-intersection. `/api/products` idem (acceptă `et_offset` single sau `et` multi). `ProductCard` + product detail afișează `ET20-50` când `et_min ≠ et_max` (eliminat complet artefactul `ET99999`). Etapa C (UI picker în product detail) și D (cart + orders) rămân. — catalog filter ET range
 - 2026-04-18 — **ET range — Etapa C + D (picker + cart/orders)**: componentă client nouă `app/jante/[slug]/ProductActions.tsx` — dropdown ET când `et_min ≠ et_max` (cu opțiune „Am nevoie de ajutor cu alegerea ET") și dropdown prindere când produsul are ≥ 3 PCD-uri normalizate (cu „Am nevoie de ajutor pentru alegerea prinderii"); selector cantitate; buton adaugă în coș cu fetch către `/api/cart`. Pagina produs calculează integer ET list (`Array.from` pe `[ceil(et_min), floor(et_max)]`) și lista PCD din `splitAndNormalizePcds`. `/api/cart` POST validat cu Zod (`selected_et`, `selected_pcd`, `needs_help_et`, `needs_help_pcd`) și upsert-ul persistă coloanele. `/api/orders` POST snapshot-ează selecțiile în `order_items`. `/cos/page.tsx` arată selecțiile și mesajul de asistență sub fiecare produs. `CartItem` extins în `lib/types.ts`. — fluxul complet ET/PCD customer-facing
+- 2026-04-19 — **Cleanup ET corupt**: migrație `011_cleanup_corrupt_et.sql` setează `et_offset / et_offset_rear / et_min / et_max = NULL` pe rândurile cu `abs(value) > 999` (artefacte vechi tip `99999` rămase de la parser-ul care trata listele cu virgulă ca separator de mii). Real ET e în -60…+150, deci pragul 999 e safe. Idempotentă. — curățare date legacy
 
 ---
 
