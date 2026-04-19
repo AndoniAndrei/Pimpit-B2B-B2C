@@ -21,6 +21,29 @@
 --   The accesorii RPC is untouched — accessories don't have offsets.
 -- ============================================================
 
+-- Drop every existing overload of get_cascading_filter_options.
+-- `CREATE OR REPLACE FUNCTION` only replaces an *identical* signature, so
+-- the new 11-arg version (with p_ets) would otherwise land alongside the
+-- legacy 10-arg version from migration 005. After that, `GRANT … ON
+-- FUNCTION get_cascading_filter_options TO …` (no arg list) fails with
+-- 42725 — "function name is not unique". The DO block iterates pg_proc
+-- and drops each overload by oid, so this is safe to re-run regardless
+-- of which signatures are currently in the DB.
+DO $$
+DECLARE
+  fn oid;
+BEGIN
+  FOR fn IN
+    SELECT p.oid
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'get_cascading_filter_options'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', fn::regprocedure);
+  END LOOP;
+END$$;
+
 CREATE OR REPLACE FUNCTION get_cascading_filter_options(
   p_search      text      DEFAULT NULL,
   p_brands      text[]    DEFAULT NULL,
@@ -176,4 +199,6 @@ AS $$
   )
 $$;
 
-GRANT EXECUTE ON FUNCTION get_cascading_filter_options TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_cascading_filter_options(
+  text, text[], text[], numeric[], numeric[], text[], numeric[], text[], text[], numeric, numeric
+) TO anon, authenticated;
