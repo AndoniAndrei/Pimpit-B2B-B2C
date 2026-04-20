@@ -4,7 +4,7 @@
 > **Regulă:** La orice modificare funcțională (feature nou, schimbare de schemă, API nou, bugfix semnificativ) **acest fișier trebuie actualizat** în același commit. Secțiunile "Known Issues" și "Roadmap" se ajustează pe măsură ce lucrurile avansează.
 > **Citire:** Claude Code trebuie să consulte acest fișier la începutul fiecărei sesiuni, ÎNAINTE de a citi cod.
 
-Ultima actualizare: 2026-04-17
+Ultima actualizare: 2026-04-20
 
 ---
 
@@ -170,7 +170,7 @@ Toată config-ul ajunge în `suppliers.driver_config` (JSONB).
 - Apelat din `/api/admin/feeds/[id]/import/route.ts` (buton individual din admin) și implicit din `runImportAll()`.
 - Flow: fetch feed → `feedParser.parseFeedBuffer()` (CSV/JSON/XML/XLSX) → `genericParser.parseRow()` aplică `field_mappings` → dedup pe `(part_number, brand)` → batch upsert 250/lot în `products` și `product_sources` → post-upsert `imageImporter` pentru ZIP → log în `sync_logs`.
 - Driver special: `lib/statusfalgarDriver.ts` (multi-endpoint: Articles + NetPrices + Stock).
-- Timeout fetch: 180s. Timeout per batch: 120s.
+- Timeout fetch: 120s (`fetchFeed`, `importRunner.ts:96`). Nu există timeout per-batch la upsert — rulează până Postgres/runtime îl taie.
 
 ### 6.2 `runImportAll()` — sync global
 
@@ -270,6 +270,7 @@ Policy: public READ, service_role WRITE.
 009_et_range_pcd_choice.sql            → products.et_min/et_max + cart/order_items.selected_et/selected_pcd/needs_help_*
 010_cascading_filter_et_range.sql      → RPC fațetat acceptă p_ets[] + intersecție interval ET
 011_cleanup_corrupt_et.sql             → NULL pe et_offset/et_min/et_max când abs > 999 (artefacte vechi)
+012_atomic_order_creation.sql          → funcția `create_order_atomic` (SECURITY DEFINER, rezervă stoc + inserează order + order_items într-o tranzacție)
 ```
 
 ---
@@ -301,8 +302,9 @@ Reguli per supplier în `pricing_rules`. Opțional `min_margin_pct` și `old_pri
 
 La upsert în `products`:
 1. Toate variantele unui `(part_number, brand)` intră în `product_sources`.
-2. Variantele se reduc la una singură: **cel mai mic preț → cel mai mare stoc → supplier ID cel mai mic** (tie-break determinist).
-3. Câștigătorul setează `winning_supplier_id`, `winning_raw_price`, `price`, `stock`, `images`, etc.
+2. În cadrul unui singur run, `deduplicateProducts` (importRunner.ts:41) păstrează varianta cu **cel mai mare preț valid** — euristică pentru a evita ca rândurile defecte cu preț ~0 să câștige.
+3. **Între furnizori**, câștigătorul efectiv este **ultimul furnizor care rulează import** (upsert `onConflict: 'part_number,brand'` → last-writer-wins). `winning_supplier_id`, `price`, `stock`, `images` sunt suprascrise de fiecare sync.
+4. **Known issue (C4):** tiebreaker-ul determinist documentat anterior (min price → max stock → min supplier_id) **NU este implementat**. Vezi secțiunea 10.1.
 
 ### 8.4 B2B pricing
 
@@ -346,6 +348,7 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY       # bypass RLS pentru operații admin + ETL
 NEXT_PUBLIC_SITE_URL            # default https://pimpit.ro (sitemap)
+ADMIN_BOOTSTRAP_TOKEN           # gate pentru /api/setup-admin; setează temporar la bootstrap, apoi șterge
 
 # Credentiale supplier (folosite la rulare prin suppliers.{api_key_ref|token_ref|customer_id_ref})
 WHEELTRADE_API_KEY
@@ -365,7 +368,9 @@ Confirmate prin audit pe cod la data 2026-04-17.
 
 ### 10.1 Critice (de rezolvat prioritar)
 
-_(Toate fix-urile critice livrate. Vezi Change Log.)_
+| # | Issue | Fișier |
+|---|---|---|
+| C4 | Cross-supplier winner este last-writer-wins. `winning_supplier_id`, `price`, `stock`, `images` se suprascriu la fiecare sync. Rezolvarea determinsită documentată în §8.3 necesită RPC dedicat peste `product_sources`. | `pimpit-web/lib/importRunner.ts:301-304`, `supabase/schema.sql` (lipsă funcție `select_winning_source`) |
 
 ### 10.2 High
 
@@ -425,6 +430,12 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-18 — **ET range — Etapa B (catalog filter)**: migrație `010_cascading_filter_et_range.sql` — `get_cascading_filter_options` primește `p_ets numeric[]`, întoarce faceta `ets` enumerată cu `generate_series(floor(et_min)::int, ceil(et_max)::int)`, aplică filtrare prin intersecție interval (`EXISTS (SELECT 1 FROM unnest(p_ets) e WHERE e BETWEEN et_min AND et_max)`) în toate CTE-urile. `/jante/page.tsx` acceptă `?et=35&et=40` și filtrează produsele prin OR de range-intersection. `/api/products` idem (acceptă `et_offset` single sau `et` multi). `ProductCard` + product detail afișează `ET20-50` când `et_min ≠ et_max` (eliminat complet artefactul `ET99999`). Etapa C (UI picker în product detail) și D (cart + orders) rămân. — catalog filter ET range
 - 2026-04-18 — **ET range — Etapa C + D (picker + cart/orders)**: componentă client nouă `app/jante/[slug]/ProductActions.tsx` — dropdown ET când `et_min ≠ et_max` (cu opțiune „Am nevoie de ajutor cu alegerea ET") și dropdown prindere când produsul are ≥ 3 PCD-uri normalizate (cu „Am nevoie de ajutor pentru alegerea prinderii"); selector cantitate; buton adaugă în coș cu fetch către `/api/cart`. Pagina produs calculează integer ET list (`Array.from` pe `[ceil(et_min), floor(et_max)]`) și lista PCD din `splitAndNormalizePcds`. `/api/cart` POST validat cu Zod (`selected_et`, `selected_pcd`, `needs_help_et`, `needs_help_pcd`) și upsert-ul persistă coloanele. `/api/orders` POST snapshot-ează selecțiile în `order_items`. `/cos/page.tsx` arată selecțiile și mesajul de asistență sub fiecare produs. `CartItem` extins în `lib/types.ts`. — fluxul complet ET/PCD customer-facing
 - 2026-04-19 — **Cleanup ET corupt**: migrație `011_cleanup_corrupt_et.sql` setează `et_offset / et_offset_rear / et_min / et_max = NULL` pe rândurile cu `abs(value) > 999` (artefacte vechi tip `99999` rămase de la parser-ul care trata listele cu virgulă ca separator de mii). Real ET e în -60…+150, deci pragul 999 e safe. Idempotentă. — curățare date legacy
+- 2026-04-20 — **Audit findings C1 + C2 + C3 + C5**:
+  - **FIXED C1 (SSRF /api/image-proxy)**: `app/api/image-proxy/route.ts` rescris — DNS lookup + block loopback/link-local/RFC1918/CGNAT/multicast, redirects manuale (toate hop-urile trec prin checks), cap 10MB, `redirect: 'manual'`, timeout 15s, reject userinfo în URL. Elimină vectorul de ieșire spre `169.254.169.254`/private network via `?url=`.
+  - **FIXED C2 (cart DELETE IDOR)**: `app/api/cart/route.ts` — DELETE acum scoped la `user_id` sau `session_id` al apelantului; returnează 404 dacă rândul nu-i aparține.
+  - **FIXED C3 (oversell race la checkout)**: migrație `012_atomic_order_creation.sql` (funcție `create_order_atomic` SECURITY DEFINER care rezervă stoc + creează order + order_items într-o tranzacție). `app/api/orders/route.ts` refactorizat să delege la RPC; 409 pe `INSUFFICIENT_STOCK`. Products.stock este acum decrementat atomic la creare order (reservation la ramburs).
+  - **FIXED C5 (setup-admin race)**: `/api/setup-admin` gated de `ADMIN_BOOTSTRAP_TOKEN` (constant-time compare, header `x-setup-token`). `/setup/page.tsx` cere token în UI. Fără env var, ruta returnează 403 — safe default după primul setup.
+  - **DOC FIXES M1 + M3**: §6.1 (timeout 120s real), §8.3 (winner = last-writer-wins, tiebreaker documentat anterior devine known issue C4).
 
 ---
 

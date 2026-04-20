@@ -90,8 +90,24 @@ export async function DELETE(request: Request) {
 
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
-  const { error } = await supabase.from('cart').delete().eq('id', id)
+  const { data: { user } } = await supabase.auth.getUser()
+  const sessionId = cookies().get('session_id')?.value
+
+  if (!user && !sessionId) {
+    return NextResponse.json({ error: 'No session' }, { status: 400 })
+  }
+
+  // Scope the delete to the caller's own cart row — never trust `id` alone.
+  let query = supabase.from('cart').delete().eq('id', id)
+  if (user) {
+    query = query.eq('user_id', user.id)
+  } else {
+    query = query.eq('session_id', sessionId!)
+  }
+
+  const { data, error } = await query.select('id').maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.json({ success: true })
 }

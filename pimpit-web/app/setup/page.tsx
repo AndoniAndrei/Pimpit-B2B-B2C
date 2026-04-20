@@ -5,10 +5,19 @@ import { useState } from 'react'
 export default function SetupPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+  const [token, setToken] = useState('')
 
   async function handleSetup() {
+    if (!token.trim()) {
+      setStatus('error')
+      setMessage('Token-ul de setup este obligatoriu.')
+      return
+    }
     setStatus('loading')
-    const res = await fetch('/api/setup-admin', { method: 'POST' })
+    const res = await fetch('/api/setup-admin', {
+      method: 'POST',
+      headers: { 'x-setup-token': token.trim() },
+    })
     const data = await res.json()
     if (res.ok) {
       setStatus('success')
@@ -30,12 +39,22 @@ export default function SetupPage() {
         </p>
 
         {status === 'idle' && (
-          <button
-            onClick={handleSetup}
-            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold"
-          >
-            Setează-mă ca Administrator
-          </button>
+          <div className="space-y-3">
+            <input
+              type="password"
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="Token de setup (ADMIN_BOOTSTRAP_TOKEN)"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              autoComplete="off"
+            />
+            <button
+              onClick={handleSetup}
+              className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold"
+            >
+              Setează-mă ca Administrator
+            </button>
+          </div>
         )}
 
         {status === 'loading' && (

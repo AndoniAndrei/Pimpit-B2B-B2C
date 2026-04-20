@@ -64,70 +64,60 @@ export async function POST(request: Request) {
     isB2B = profile?.role === 'customer_b2b'
   }
 
-  // 3. Calculate Totals & Check Stock
-  let subtotal = 0
-  const orderItems = []
-
-  for (const item of cartItems) {
+  // 3. Build the RPC payload with B2B pricing applied at checkout time.
+  //    Stock is NOT checked here — create_order_atomic does the check
+  //    atomically inside one transaction to prevent oversell races.
+  const items = cartItems.map(item => {
     const p = item.product
-    if (p.stock < item.quantity) {
-      return NextResponse.json({ error: `Not enough stock for ${p.name}` }, { status: 400 })
-    }
-
     const unitPrice = (isB2B && p.price_b2b != null) ? p.price_b2b : p.price
-    const totalPrice = unitPrice * item.quantity
-    subtotal += totalPrice
-
-    orderItems.push({
+    return {
       product_id: p.id,
       product_name: p.name,
       product_brand: p.brand,
       product_pn: p.part_number,
-      product_image: p.images?.[0] || null,
+      product_image: p.images?.[0] ?? null,
       unit_price: unitPrice,
       quantity: item.quantity,
-      total_price: totalPrice,
-      // Snapshot the customer's ET / PCD selection (or "needs help" flags)
-      // at checkout time; the cart row is discarded right after.
       selected_et: item.selected_et ?? null,
       selected_pcd: item.selected_pcd ?? null,
       needs_help_et: !!item.needs_help_et,
       needs_help_pcd: !!item.needs_help_pcd,
-    })
+    }
+  })
+
+  // 4. Atomic order creation: reserves stock, inserts order + items,
+  //    returns the new order id. Any failure rolls the whole thing back.
+  const { data: orderId, error: rpcError } = await supabase.rpc('create_order_atomic', {
+    p_user_id: user?.id ?? null,
+    p_customer_name: customer_name,
+    p_customer_email: customer_email,
+    p_customer_phone: customer_phone,
+    p_shipping_address: shipping_address,
+    p_billing_address: billing_address ?? null,
+    p_payment_method: payment_method,
+    p_items: items,
+  })
+
+  if (rpcError) {
+    const msg = rpcError.message || ''
+    if (msg.includes('INSUFFICIENT_STOCK')) {
+      return NextResponse.json({ error: 'Stoc insuficient pentru unul dintre produse' }, { status: 409 })
+    }
+    if (msg.includes('EMPTY_CART')) {
+      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+    }
+    if (msg.includes('INVALID_ITEM')) {
+      return NextResponse.json({ error: 'Date invalide în coș' }, { status: 400 })
+    }
+    return NextResponse.json({ error: rpcError.message }, { status: 500 })
   }
 
-  const shippingCost = subtotal > 1000 ? 0 : 50 // Example logic
-  const total = subtotal + shippingCost
-
-  // 4. Create Order
-  const { data: order, error: orderError } = await supabase.from('orders').insert({
-    user_id: user?.id || null,
-    status: 'pending',
-    shipping_address,
-    billing_address: billing_address || shipping_address,
-    subtotal,
-    shipping_cost: shippingCost,
-    total,
-    customer_email,
-    customer_phone,
-    customer_name,
-    payment_method
-  }).select().maybeSingle()
-
-  if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 })
-
-  // 5. Create Order Items
-  const itemsToInsert = orderItems.map(oi => ({ ...oi, order_id: order.id }))
-  const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert)
-  
-  if (itemsError) return NextResponse.json({ error: itemsError.message }, { status: 500 })
-
-  // 6. Clear Cart
+  // 5. Clear Cart (best-effort — the order is already persisted)
   if (user) {
     await supabase.from('cart').delete().eq('user_id', user.id)
   } else if (sessionId) {
     await supabase.from('cart').delete().eq('session_id', sessionId)
   }
 
-  return NextResponse.json({ order_id: order.id })
+  return NextResponse.json({ order_id: orderId })
 }
