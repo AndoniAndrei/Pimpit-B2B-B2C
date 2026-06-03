@@ -86,14 +86,21 @@ export default async function AccesoriiPage({ searchParams }: { searchParams: Se
     (priceMin ? 1 : 0) + (priceMax ? 1 : 0) + (search ? 1 : 0)
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-pimpit-bg min-h-screen">
+      {/* Breadcrumb */}
+      <div className="border-b border-pimpit-border">
+        <div className="container mx-auto px-4 lg:px-8 py-4 font-mono text-[11px] uppercase tracking-[0.24em] text-pimpit-text-muted flex items-center gap-2">
+          <Link href="/" className="hover:text-pimpit-text transition-colors">Acasă</Link>
+          <span className="text-pimpit-border">/</span>
+          <span className="text-pimpit-accent">Accesorii</span>
+        </div>
+      </div>
+
       {/* Sticky header bar */}
-      <div className="bg-white border-b sticky top-16 z-40 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+      <div className="bg-pimpit-bg/95 backdrop-blur-md border-b border-pimpit-border sticky top-16 z-40">
+        <div className="container mx-auto px-4 lg:px-8 py-5">
           <Suspense fallback={
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">Accesorii</h1>
-            </div>
+            <h1 className="font-display font-medium uppercase tracking-tight text-2xl text-pimpit-text">Accesorii</h1>
           }>
             <CatalogControls
               initialSearch={search}
@@ -110,13 +117,13 @@ export default async function AccesoriiPage({ searchParams }: { searchParams: Se
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
+      <div className="container mx-auto px-4 lg:px-8 py-8">
+        <div className="flex gap-8">
 
           {/* Sidebar */}
-          <aside className="w-64 shrink-0 hidden lg:block">
-            <div className="bg-white border rounded-2xl p-5 sticky top-6">
-              <Suspense fallback={<div className="text-sm text-gray-400">Se încarcă filtrele...</div>}>
+          <aside className="w-72 shrink-0 hidden lg:block">
+            <div className="bg-pimpit-surface border border-pimpit-border p-5 sticky top-40">
+              <Suspense fallback={<div className="font-mono text-xs text-pimpit-text-muted">Se încarcă filtrele…</div>}>
                 <FilterSidebar options={filterOptions} />
               </Suspense>
             </div>
@@ -125,28 +132,31 @@ export default async function AccesoriiPage({ searchParams }: { searchParams: Se
           {/* Product grid */}
           <div className="flex-1 min-w-0">
             {error ? (
-              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
+              <div className="bg-pimpit-surface border border-destructive/40 text-destructive p-5 font-mono text-xs uppercase tracking-[0.18em]">
                 Eroare la încărcarea produselor: {error.message}
               </div>
             ) : !products?.length ? (
-              <div className="bg-white border rounded-2xl p-12 text-center">
-                <div className="text-5xl mb-4">🔍</div>
-                <h3 className="font-semibold text-gray-900 mb-2">Niciun produs găsit</h3>
-                <p className="text-gray-500 text-sm mb-4">Încearcă să modifici filtrele sau termenul de căutare.</p>
-                <Link href="/accesorii" className="text-primary hover:underline text-sm font-medium">
-                  Resetează filtrele
+              <div className="bg-pimpit-surface border border-pimpit-border p-12 text-center">
+                <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-pimpit-accent mb-3">— 0 rezultate</div>
+                <h3 className="font-display font-semibold uppercase tracking-tight text-xl text-pimpit-text mb-2">Niciun produs găsit</h3>
+                <p className="text-pimpit-text-muted text-sm mb-6">Încearcă să modifici filtrele sau termenul de căutare.</p>
+                <Link
+                  href="/accesorii"
+                  className="inline-flex items-center gap-2 font-display font-semibold uppercase tracking-[0.22em] text-xs px-5 py-3 bg-pimpit-accent text-pimpit-bg hover:bg-pimpit-accent-hover transition-colors"
+                >
+                  Resetează filtrele →
                 </Link>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 md:gap-5">
                   {products.map(p => (
                     <ProductCard key={p.id} product={p as any} isB2B={false} />
                   ))}
                 </div>
 
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+                  <div className="flex items-center justify-center gap-1.5 mt-12 flex-wrap font-mono text-xs">
                     {page > 1 && (
                       <PaginationLink searchParams={searchParams} page={page - 1}>← Înapoi</PaginationLink>
                     )}
@@ -187,10 +197,10 @@ function PaginationLink({ searchParams, page, active, children }: {
   params.set('page', String(page));
   return (
     <Link href={`/accesorii?${params.toString()}`}
-      className={`px-3 py-2 text-sm rounded-lg border font-medium transition-colors
+      className={`px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] border transition-colors
         ${active
-          ? 'bg-primary text-primary-foreground border-primary'
-          : 'bg-white hover:border-primary hover:text-primary'}`}>
+          ? 'bg-pimpit-accent text-pimpit-bg border-pimpit-accent'
+          : 'bg-pimpit-surface text-pimpit-text-muted border-pimpit-border hover:border-pimpit-accent hover:text-pimpit-text'}`}>
       {children}
     </Link>
   );

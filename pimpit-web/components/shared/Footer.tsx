@@ -1,0 +1,107 @@
+import Link from 'next/link'
+import { Shield, Truck, CreditCard, Award } from 'lucide-react'
+
+const FOOTER_NAV = {
+  Catalog: [
+    { label: 'Toate jantele', href: '/jante' },
+    { label: 'Jante 17"', href: '/jante?diameter=17' },
+    { label: 'Jante 18"', href: '/jante?diameter=18' },
+    { label: 'Jante 19"', href: '/jante?diameter=19' },
+    { label: 'Jante 20"', href: '/jante?diameter=20' },
+    { label: 'Accesorii', href: '/accesorii' },
+  ],
+  Cont: [
+    { label: 'Login / Înregistrare', href: '/auth/login' },
+    { label: 'Cont B2B', href: '/auth/login' },
+    { label: 'Coșul meu', href: '/cos' },
+    { label: 'Comenzile mele', href: '/cont' },
+  ],
+  'Brand-uri': [
+    { label: 'Concaver', href: '/jante?brand=Concaver' },
+    { label: 'Japan Racing', href: '/jante?brand=Japan%20Racing' },
+    { label: 'JUDD Forged', href: '/jante?brand=JUDD' },
+    { label: 'Sixnine', href: '/jante?brand=Sixnine' },
+    { label: 'MB Design', href: '/jante?brand=MB%20Design' },
+    { label: 'Toate brand-urile', href: '/jante' },
+  ],
+}
+
+const TRUST_ITEMS = [
+  { Icon: Award, label: 'Certificat TÜV / KBA' },
+  { Icon: Truck, label: 'Livrare 24-48h în țară' },
+  { Icon: Shield, label: 'Garanție producător' },
+  { Icon: CreditCard, label: 'Plată securizată' },
+]
+
+export default function Footer() {
+  return (
+    <footer className="bg-pimpit-surface border-t border-pimpit-border text-pimpit-text">
+      {/* Trust strip */}
+      <div className="border-b border-pimpit-border">
+        <div className="container mx-auto px-4 lg:px-8 py-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+          {TRUST_ITEMS.map(({ Icon, label }) => (
+            <div key={label} className="flex items-center gap-3">
+              <Icon className="w-5 h-5 text-pimpit-accent shrink-0" />
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-pimpit-text-muted">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main 4-column footer */}
+      <div className="container mx-auto px-4 lg:px-8 py-14 grid grid-cols-2 md:grid-cols-4 gap-10">
+        {/* Brand */}
+        <div className="col-span-2 md:col-span-1">
+          <Link href="/" className="font-display font-extrabold text-2xl tracking-tight text-pimpit-text">
+            PIMPIT<span className="text-pimpit-accent">.RO</span>
+          </Link>
+          <p className="mt-4 text-sm text-pimpit-text-muted leading-relaxed max-w-xs">
+            Catalog premium de jante aliaj &amp; accesorii tuning. Aftermarket
+            verificat, fitment exact, livrare rapidă.
+          </p>
+          <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.28em] text-pimpit-text-muted">
+            <span className="text-pimpit-accent">—</span>&nbsp;&nbsp;Est. 2024 · România
+          </div>
+        </div>
+
+        {/* Nav columns */}
+        {Object.entries(FOOTER_NAV).map(([heading, items]) => (
+          <div key={heading}>
+            <h4 className="font-display font-semibold uppercase text-sm tracking-[0.22em] text-pimpit-text mb-5">
+              {heading}
+            </h4>
+            <ul className="space-y-2.5">
+              {items.map((it) => (
+                <li key={it.href + it.label}>
+                  <Link
+                    href={it.href}
+                    className="text-sm text-pimpit-text-muted hover:text-pimpit-accent transition-colors"
+                  >
+                    {it.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom strip */}
+      <div className="border-t border-pimpit-border">
+        <div className="container mx-auto px-4 lg:px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-pimpit-text-muted">
+            © {new Date().getFullYear()} Pimpit.ro · Toate drepturile rezervate
+          </p>
+          <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.24em] text-pimpit-text-muted">
+            <span>VISA</span>
+            <span>MasterCard</span>
+            <span>Apple Pay</span>
+            <span>Stripe</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}

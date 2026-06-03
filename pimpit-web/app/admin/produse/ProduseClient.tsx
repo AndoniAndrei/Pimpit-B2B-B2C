@@ -191,7 +191,7 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
       {selected.size > 0 && (
         <div className="flex flex-wrap gap-3 items-center bg-blue-50 border border-blue-200 rounded-xl p-3">
           <span className="text-sm font-semibold text-blue-800">{selected.size} selectate</span>
-          <select className="border rounded-lg px-2 py-1.5 text-sm bg-white" value={bulkAction} onChange={e => { setBulkAction(e.target.value); setBulkValue('') }}>
+          <select className="border rounded-lg px-2 py-1.5 text-sm bg-card" value={bulkAction} onChange={e => { setBulkAction(e.target.value); setBulkValue('') }}>
             <option value="">Alege acțiune...</option>
             <option value="activate">Activează</option>
             <option value="deactivate">Dezactivează</option>
@@ -202,7 +202,7 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
           </select>
           {['set_price', 'price_formula', 'set_stock'].includes(bulkAction) && (
             <input
-              className="border rounded-lg px-2 py-1.5 text-sm bg-white w-48 font-mono"
+              className="border rounded-lg px-2 py-1.5 text-sm bg-card w-48 font-mono"
               placeholder={bulkAction === 'price_formula' ? '{price} * 1.10' : 'valoare'}
               value={bulkValue}
               onChange={e => setBulkValue(e.target.value)}
@@ -306,7 +306,7 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
       {/* Delete All Modal */}
       {deleteAllStep > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
             {/* Header */}
             <div className="bg-red-600 px-8 py-6 text-white">
               <div className="text-4xl mb-2">⚠️</div>
@@ -315,7 +315,7 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
 
             {/* Body */}
             <div className="px-8 py-6 space-y-4">
-              <p className="text-gray-800 text-base leading-relaxed">
+              <p className="text-foreground text-base leading-relaxed">
                 Ești pe cale să ștergi <strong className="text-red-600">TOATE produsele</strong> din baza de date.
               </p>
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 space-y-1">
@@ -325,7 +325,7 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
               </div>
 
               {deleteAllStep === 1 && (
-                <p className="text-gray-600 text-sm font-medium">
+                <p className="text-muted-foreground text-sm font-medium">
                   Apasă <strong>Confirmă prima oară</strong> pentru a continua.
                 </p>
               )}
@@ -342,11 +342,11 @@ export default function ProduseClient({ suppliers }: { suppliers: { id: number; 
             </div>
 
             {/* Footer */}
-            <div className="px-8 py-5 bg-gray-50 border-t flex gap-3 justify-end">
+            <div className="px-8 py-5 bg-muted border-t flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteAllStep(0)}
                 disabled={deleteAllLoading}
-                className="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                className="px-5 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50"
               >
                 Anulează
               </button>

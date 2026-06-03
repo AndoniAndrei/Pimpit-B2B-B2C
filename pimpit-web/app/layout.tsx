@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Barlow_Condensed, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/shared/Navbar'
+import Footer from '@/components/shared/Footer'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
 const barlowCondensed = Barlow_Condensed({
@@ -24,11 +25,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ro" className={`${barlowCondensed.variable} ${jetbrainsMono.variable} ${inter.variable}`}>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-pimpit-bg text-pimpit-text antialiased`}>
         <Navbar />
         <main className="min-h-screen pt-16">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   )

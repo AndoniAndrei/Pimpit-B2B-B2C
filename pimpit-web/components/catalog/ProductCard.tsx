@@ -3,28 +3,26 @@ import { Product } from '@/lib/types'
 import ProductImage from './ProductImage'
 import { formatPrice } from '@/lib/utils'
 
-const GOLD = '#C9A84C'
-
 function StockBadge({ stock, stockIncoming }: { stock: number; stockIncoming: number }) {
   if (stock > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400">
-        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-success">
+        <span className="w-1.5 h-1.5 bg-pimpit-success rounded-full" />
         {stock} în stoc
       </span>
     )
   }
   if (stockIncoming > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-400">
-        <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-accent">
+        <span className="w-1.5 h-1.5 bg-pimpit-accent rounded-full" />
         {stockIncoming} la comandă
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-      <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full" />
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text-muted">
+      <span className="w-1.5 h-1.5 bg-pimpit-text-muted rounded-full" />
       epuizat
     </span>
   )
@@ -32,9 +30,9 @@ function StockBadge({ stock, stockIncoming }: { stock: number; stockIncoming: nu
 
 function SpecBadge({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-baseline gap-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300">
-      <span className="text-zinc-500">{label}</span>
-      <span className="text-zinc-100">{value}</span>
+    <span className="inline-flex items-baseline gap-1 font-mono text-[10px] uppercase tracking-[0.14em]">
+      <span className="text-pimpit-text-muted">{label}</span>
+      <span className="text-pimpit-text">{value}</span>
     </span>
   )
 }
@@ -62,12 +60,10 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
   return (
     <Link
       href={`/jante/${product.slug}`}
-      className="group relative flex flex-col bg-[#141414] border border-white/10 overflow-hidden transition-all duration-300 hover:border-[color:var(--pimpit-gold)] hover:-translate-y-0.5"
-      style={{ ['--pimpit-gold' as any]: GOLD }}
+      className="group relative flex flex-col bg-pimpit-surface border border-pimpit-border overflow-hidden transition-all duration-300 hover:border-pimpit-accent hover:-translate-y-0.5"
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#1a1a1a] via-[#141414] to-[#0a0a0a]">
-        {/* Side-light wash, intensifies on hover */}
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pimpit-surface-2 via-pimpit-surface to-pimpit-bg">
         <div
           aria-hidden
           className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
@@ -82,19 +78,18 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
           className="p-6 transition-transform duration-500 group-hover:scale-[1.06]"
         />
 
-        {/* Color chip */}
         {product.color && (
-          <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-300 bg-black/60 backdrop-blur-sm border border-white/10 px-2 py-1">
+          <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text bg-pimpit-bg/70 backdrop-blur-sm border border-pimpit-border px-2 py-1">
             {product.color}
           </span>
         )}
 
-        {/* Hover spec overlay — appears on hover, gold rule on top */}
+        {/* Hover spec overlay */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 px-4 py-3 bg-gradient-to-t from-black/85 via-black/60 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+          className="absolute inset-x-0 bottom-0 px-4 py-3 bg-gradient-to-t from-pimpit-bg/90 via-pimpit-bg/60 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
         >
-          <div className="h-px w-8 mb-2" style={{ background: GOLD }} />
+          <div className="h-px w-8 mb-2 bg-pimpit-accent" />
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {specs.map(([k, v]) => (
               <SpecBadge key={k} label={k} value={v} />
@@ -104,18 +99,14 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1 gap-2.5 border-t border-white/5">
-        <div
-          className="font-mono text-[10px] uppercase tracking-[0.28em]"
-          style={{ color: GOLD }}
-        >
+      <div className="p-4 flex flex-col flex-1 gap-2.5 border-t border-pimpit-border">
+        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-pimpit-accent">
           {product.brand}
         </div>
-        <h3 className="font-display text-[15px] font-medium text-zinc-100 leading-tight line-clamp-2 tracking-tight">
+        <h3 className="font-display text-base font-semibold text-pimpit-text leading-tight line-clamp-2 tracking-tight uppercase">
           {product.name}
         </h3>
 
-        {/* Spec row — always visible, monospace */}
         {specs.length > 0 && (
           <div className="flex flex-wrap gap-x-2.5 gap-y-1 pt-1">
             {specs.map(([k, v]) => (
@@ -128,15 +119,15 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
           <StockBadge stock={product.stock ?? 0} stockIncoming={product.stock_incoming ?? 0} />
           <div className="flex flex-col items-end leading-none">
             {hasOld && (
-              <span className="font-mono text-[10px] text-zinc-500 line-through">
+              <span className="font-mono text-[10px] text-pimpit-text-muted line-through">
                 {formatPrice(product.price_old!)}
               </span>
             )}
-            <span className="font-display text-lg font-semibold text-zinc-100 tabular-nums">
+            <span className="font-display text-xl font-bold text-pimpit-text tabular-nums">
               {formatPrice(displayPrice)}
             </span>
             {isB2B && product.price_b2b != null && (
-              <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em]" style={{ color: GOLD }}>
+              <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-pimpit-accent">
                 B2B
               </span>
             )}
@@ -144,12 +135,13 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         </div>
       </div>
 
-      {/* CTA — solid gold, sharp corners, slides up on hover */}
+      {/* CTA — solid gold, square corners */}
       <div
-        className={`w-full font-display font-semibold text-sm uppercase tracking-[0.18em] py-3 text-center select-none transition-all duration-300
-          md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0
-          ${outOfStock ? 'opacity-40 bg-zinc-700 text-zinc-300' : ''}`}
-        style={!outOfStock ? { background: GOLD, color: '#0A0A0A' } : undefined}
+        className={`w-full font-display font-semibold text-sm uppercase tracking-[0.22em] py-3.5 text-center select-none transition-all duration-300
+          ${outOfStock
+            ? 'bg-pimpit-surface-2 text-pimpit-text-muted opacity-60'
+            : 'bg-pimpit-accent text-pimpit-bg md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0'}
+        `}
       >
         {outOfStock ? 'Indisponibil' : 'Adaugă în coș'}
       </div>
