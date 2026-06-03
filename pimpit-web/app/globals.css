@@ -5,49 +5,47 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 24 10% 10%;        /* stone-900 */
+    --foreground: 0 0% 4%;            /* near-black for max readability */
     --card: 0 0% 100%;
-    --card-foreground: 24 10% 10%;
+    --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 44 54% 48%;           /* deeper gold for light bg contrast */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 30 6% 96%;          /* stone-100 */
-    --secondary-foreground: 24 10% 10%;
-    --muted: 30 6% 96%;
-    --muted-foreground: 25 5% 45%;   /* stone-500 */
-    --accent: 30 6% 96%;
-    --accent-foreground: 24 10% 10%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 30 8% 90%;             /* stone-200 */
-    --input: 30 8% 90%;
-    --ring: 44 54% 48%;
-    --radius: 0.25rem;
-  }
-
-  .dark {
-    /* Kept identical to :root — dark mode is intentionally disabled.
-       The .dark class is preserved only for shadcn compatibility. */
-    --background: 0 0% 100%;
-    --foreground: 24 10% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 24 10% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 24 10% 10%;
-    --primary: 44 54% 48%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 36 90% 38%;            /* premium gold #B8860B */
     --primary-foreground: 0 0% 100%;
     --secondary: 30 6% 96%;
-    --secondary-foreground: 24 10% 10%;
+    --secondary-foreground: 0 0% 4%;
     --muted: 30 6% 96%;
-    --muted-foreground: 25 5% 45%;
+    --muted-foreground: 0 0% 32%;     /* zinc-600 */
     --accent: 30 6% 96%;
-    --accent-foreground: 24 10% 10%;
+    --accent-foreground: 0 0% 4%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 30 8% 90%;
     --input: 30 8% 90%;
-    --ring: 44 54% 48%;
+    --ring: 36 90% 38%;
+    --radius: 0.25rem;
+  }
+
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 36 90% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 6% 96%;
+    --secondary-foreground: 0 0% 4%;
+    --muted: 30 6% 96%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 30 6% 96%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 8% 90%;
+    --input: 30 8% 90%;
+    --ring: 36 90% 38%;
   }
 }
 
@@ -61,11 +59,60 @@
   body {
     @apply bg-background text-foreground;
   }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+@layer components {
+  /* PREMIUM GOLD BUTTON — used on every primary CTA across the site.
+     Includes a metallic gradient, soft drop shadow, and a moving shine
+     overlay that sweeps left→right on hover. Looks great on white. */
+  .btn-gold {
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden
+           bg-gold-shine text-white font-semibold tracking-wide
+           shadow-gold transition-all duration-300
+           hover:bg-gold-shine-hover hover:-translate-y-px hover:shadow-[0_8px_20px_-4px_rgba(184,134,11,0.30)];
+  }
+  .btn-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.25) 50%,
+      transparent 100%
+    );
+    transform: skewX(-20deg);
+    transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .btn-gold:hover::before {
+    left: 125%;
+  }
+
+  /* Outline variant — slim gold border for secondary CTAs */
+  .btn-gold-outline {
+    @apply inline-flex items-center justify-center gap-2 border-2 border-pimpit-accent
+           text-pimpit-accent font-semibold tracking-wide bg-white
+           transition-all duration-200
+           hover:bg-pimpit-accent hover:text-white;
+  }
+
+  /* Gold text accent with a subtle gradient sheen — premium without being gaudy. */
+  .text-gold-shine {
+    background: linear-gradient(135deg, #B8860B 0%, #D4AF37 50%, #B8860B 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 }

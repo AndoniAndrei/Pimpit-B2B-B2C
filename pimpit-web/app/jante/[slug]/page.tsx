@@ -46,9 +46,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 function SpecRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-3 border-b border-pimpit-border last:border-b-0">
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-pimpit-text-muted">{label}</span>
-      <span className="font-mono text-sm text-pimpit-text tabular-nums text-right">{value}</span>
+    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-pimpit-border last:border-b-0">
+      <span className="text-sm text-pimpit-text-muted">{label}</span>
+      <span className="text-sm font-semibold text-pimpit-text tabular-nums text-right">{value}</span>
     </div>
   )
 }
@@ -56,42 +56,42 @@ function SpecRow({ label, value }: { label: string; value: React.ReactNode }) {
 function StockBlock({ stock, stockIncoming }: { stock: number; stockIncoming: number }) {
   if (stock > 0) {
     return (
-      <div className="inline-flex items-center gap-2.5 border border-pimpit-success/40 bg-pimpit-success/10 px-3.5 py-2">
+      <div className="inline-flex items-center gap-2 border border-pimpit-success/40 bg-pimpit-success/10 px-3 py-1.5 rounded-md">
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full rounded-full bg-pimpit-success opacity-60 animate-ping" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-pimpit-success" />
         </span>
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-pimpit-success">
-          {stock} buc · în stoc
+        <span className="text-xs font-semibold text-pimpit-success">
+          În stoc ({stock} buc)
         </span>
       </div>
     )
   }
   if (stockIncoming > 0) {
     return (
-      <div className="inline-flex items-center gap-2.5 border border-pimpit-accent/40 bg-pimpit-accent/10 px-3.5 py-2">
+      <div className="inline-flex items-center gap-2 border border-pimpit-accent/40 bg-pimpit-accent/10 px-3 py-1.5 rounded-md">
         <span className="h-2 w-2 rounded-full bg-pimpit-accent" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-pimpit-accent">
-          {stockIncoming} buc · la comandă
+        <span className="text-xs font-semibold text-pimpit-accent">
+          La comandă ({stockIncoming} buc)
         </span>
       </div>
     )
   }
   return (
-    <div className="inline-flex items-center gap-2.5 border border-pimpit-border bg-pimpit-surface-2 px-3.5 py-2">
+    <div className="inline-flex items-center gap-2 border border-pimpit-border bg-pimpit-surface-2 px-3 py-1.5 rounded-md">
       <span className="h-2 w-2 rounded-full bg-pimpit-text-muted" />
-      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-pimpit-text-muted">epuizat</span>
+      <span className="text-xs font-semibold text-pimpit-text-muted">Indisponibil</span>
     </div>
   )
 }
 
 function CertBadge({ Icon, label, sublabel }: { Icon: any; label: string; sublabel: string }) {
   return (
-    <div className="inline-flex items-center gap-2.5 border border-pimpit-border bg-pimpit-surface px-3 py-2.5">
+    <div className="inline-flex items-center gap-2.5 border border-pimpit-border bg-white px-3 py-2 rounded-md">
       <Icon className="w-4 h-4 text-pimpit-accent shrink-0" />
       <div className="leading-tight">
-        <div className="font-display font-semibold uppercase tracking-[0.18em] text-[11px] text-pimpit-text">{label}</div>
-        <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-pimpit-text-muted">{sublabel}</div>
+        <div className="text-xs font-bold text-pimpit-text">{label}</div>
+        <div className="text-[10px] text-pimpit-text-muted">{sublabel}</div>
       </div>
     </div>
   )
@@ -119,7 +119,6 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const allPcds = product.pcd ? splitAndNormalizePcds(product.pcd) : []
   const pcdOptions = allPcds.length >= 3 ? allPcds : []
 
-  // Related: same brand, fall back to same diameter
   let related: Product[] = []
   {
     const { data: byBrand } = await supabase
@@ -154,35 +153,26 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const vid = product.youtube_link ? getYouTubeId(product.youtube_link) : null
 
   return (
-    <div className="bg-pimpit-bg text-pimpit-text min-h-screen">
+    <div className="bg-pimpit-surface-2 min-h-screen">
       {/* Breadcrumb */}
-      <div className="border-b border-pimpit-border">
-        <div className="container mx-auto px-4 lg:px-8 py-4 flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.24em] text-pimpit-text-muted">
+      <div className="bg-white border-b border-pimpit-border">
+        <div className="container mx-auto px-4 lg:px-8 py-3 flex items-center justify-between text-xs text-pimpit-text-muted">
           <div className="flex items-center gap-2 min-w-0">
-            <Link href="/" className="hover:text-pimpit-text transition-colors">Acasă</Link>
-            <span className="text-pimpit-border">/</span>
-            <Link href="/jante" className="hover:text-pimpit-text transition-colors">Jante</Link>
-            <span className="text-pimpit-border">/</span>
-            <span className="text-pimpit-accent truncate">{product.brand}</span>
+            <Link href="/" className="hover:text-pimpit-accent transition-colors">Acasă</Link>
+            <span>/</span>
+            <Link href="/jante" className="hover:text-pimpit-accent transition-colors">Jante</Link>
+            <span>/</span>
+            <span className="font-semibold text-pimpit-text truncate">{product.brand}</span>
           </div>
-          <span className="shrink-0 hidden sm:inline">Cod · {product.part_number}</span>
+          <span className="shrink-0 hidden sm:inline">Cod: {product.part_number}</span>
         </div>
       </div>
 
-      {/* Main 60/40 split */}
-      <div className="container mx-auto px-4 lg:px-8 py-10 md:py-16">
-        <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 xl:gap-16">
+      <div className="container mx-auto px-4 lg:px-8 py-8 md:py-10">
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-10">
           {/* LEFT 60% — image + media */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-stone-50 via-white to-stone-100 border border-pimpit-border">
-              <div
-                aria-hidden
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    'radial-gradient(60% 70% at 10% 50%, rgba(181,147,58,0.10) 0%, transparent 60%)',
-                }}
-              />
+            <div className="relative aspect-square overflow-hidden bg-white border border-pimpit-border rounded-md shadow-premium">
               <ProductImage
                 src={product.images?.[0] || ''}
                 alt={product.name}
@@ -190,23 +180,20 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 className="p-10"
                 priority
               />
-              <div className="absolute bottom-4 left-4 font-mono text-[10px] uppercase tracking-[0.32em] text-pimpit-text-muted">
-                <span className="text-pimpit-accent">—</span>&nbsp;&nbsp;{product.brand} · {product.name}
-              </div>
             </div>
 
             {product.images?.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
                 {product.images.slice(0, 8).map((img: string, i: number) => (
-                  <div key={i} className="w-24 h-24 relative shrink-0 bg-pimpit-surface border border-pimpit-border hover:border-pimpit-accent transition-colors">
-                    <ProductImage src={img} alt="" fill className="object-cover p-2" />
+                  <div key={i} className="w-20 h-20 relative shrink-0 bg-white border border-pimpit-border rounded-md hover:border-pimpit-accent transition-colors">
+                    <ProductImage src={img} alt="" fill className="object-cover p-1.5" />
                   </div>
                 ))}
               </div>
             )}
 
             {vid && (
-              <div className="aspect-video overflow-hidden border border-pimpit-border bg-pimpit-bg">
+              <div className="aspect-video overflow-hidden border border-pimpit-border rounded-md bg-white">
                 <iframe
                   src={`https://www.youtube.com/embed/${vid}`}
                   title="Video produs"
@@ -217,7 +204,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
               </div>
             )}
             {product.model_3d_url && (
-              <div className="aspect-square overflow-hidden border border-pimpit-border bg-pimpit-surface">
+              <div className="aspect-square overflow-hidden border border-pimpit-border rounded-md bg-white">
                 <iframe
                   src={product.model_3d_url}
                   title="Prezentare 3D"
@@ -228,129 +215,105 @@ export default async function ProductPage({ params }: { params: { slug: string }
             )}
           </div>
 
-          {/* RIGHT 40% — brand, name, price, fitment, CTA */}
+          {/* RIGHT 40% — sticky info card */}
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <div className="font-display font-semibold uppercase tracking-[0.32em] text-[11px] text-pimpit-accent px-3 py-2 border border-pimpit-accent/50">
-                {product.brand}
+            <div className="bg-white border border-pimpit-border rounded-md p-6 lg:p-7 shadow-premium">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <Link
+                  href={`/jante?brand=${encodeURIComponent(product.brand)}`}
+                  className="text-xs font-bold tracking-widest uppercase text-pimpit-accent hover:text-pimpit-accent-hover transition-colors"
+                >
+                  {product.brand}
+                </Link>
+                <StockBlock stock={product.stock ?? 0} stockIncoming={product.stock_incoming ?? 0} />
               </div>
-              <StockBlock stock={product.stock ?? 0} stockIncoming={product.stock_incoming ?? 0} />
-            </div>
 
-            <h1 className="font-display font-medium text-3xl md:text-4xl uppercase leading-[1.05] tracking-tight text-pimpit-text">
-              {product.name}
-            </h1>
-            {product.model && (
-              <p className="mt-2 font-mono text-xs uppercase tracking-[0.24em] text-pimpit-text-muted">
-                Model · <span className="text-pimpit-text">{product.model}</span>
-              </p>
-            )}
+              <h1 className="text-2xl md:text-3xl font-bold leading-tight tracking-tight text-pimpit-text">
+                {product.name}
+              </h1>
+              {product.model && (
+                <p className="mt-1.5 text-sm text-pimpit-text-muted">
+                  Model: <span className="font-semibold text-pimpit-text">{product.model}</span>
+                </p>
+              )}
 
-            {/* Fitment ribbon */}
-            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.22em] text-pimpit-text-muted">
-              {product.diameter != null && (
-                <span><span className="text-pimpit-accent">Ø</span>&nbsp;<span className="text-pimpit-text">{product.diameter}"</span></span>
-              )}
-              {product.width != null && (
-                <span><span className="text-pimpit-accent">J</span>&nbsp;<span className="text-pimpit-text">{product.width}</span></span>
-              )}
-              {product.pcd && (
-                <span><span className="text-pimpit-accent">PCD</span>&nbsp;<span className="text-pimpit-text">{product.pcd}</span></span>
-              )}
-              {(product.et_offset != null || product.et_min != null) && (
-                <span><span className="text-pimpit-accent">ET</span>&nbsp;<span className="text-pimpit-text">{etLabel}</span></span>
-              )}
-              {product.center_bore != null && (
-                <span><span className="text-pimpit-accent">CB</span>&nbsp;<span className="text-pimpit-text">{product.center_bore}</span></span>
-              )}
-            </div>
+              {/* Fitment ribbon */}
+              <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5">
+                {product.diameter != null && <FitChip label="Ø" value={`${product.diameter}"`} />}
+                {product.width != null && <FitChip label="J" value={String(product.width)} />}
+                {product.pcd && <FitChip label="PCD" value={product.pcd} />}
+                {(product.et_offset != null || product.et_min != null) && <FitChip label="ET" value={etLabel} />}
+                {product.center_bore != null && <FitChip label="CB" value={String(product.center_bore)} />}
+              </div>
 
-            {/* Certification badges */}
-            <div className="mt-5 flex flex-wrap gap-2">
-              {product.certificate_url && <CertBadge Icon={Award} label="TÜV" sublabel="Certificat" />}
-              <CertBadge Icon={Shield} label="KBA" sublabel="Approved" />
-              <CertBadge Icon={BadgeCheck} label="JWL" sublabel="Tested" />
-            </div>
+              {/* Cert badges */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {product.certificate_url && <CertBadge Icon={Award} label="TÜV" sublabel="Certificat" />}
+                <CertBadge Icon={Shield} label="KBA" sublabel="Approved" />
+                <CertBadge Icon={BadgeCheck} label="JWL" sublabel="Tested" />
+              </div>
 
-            {/* Price */}
-            <div className="mt-8 pb-8 border-b border-pimpit-border">
-              {hasOld && (
-                <span className="font-mono text-sm text-pimpit-text-muted line-through">
-                  {formatPrice(product.price_old!)}
-                </span>
-              )}
-              <div className="flex items-baseline gap-3">
-                <span className="font-display text-4xl md:text-5xl font-bold tracking-tight text-pimpit-text tabular-nums">
-                  {formatPrice(displayPrice)}
-                </span>
-                {isB2B && product.price_b2b != null && (
-                  <span className="font-mono text-[10px] uppercase tracking-[0.28em] px-2 py-1 border border-pimpit-accent/50 text-pimpit-accent">
-                    B2B
+              {/* Price */}
+              <div className="mt-6 pb-6 border-b border-pimpit-border">
+                {hasOld && (
+                  <span className="text-sm text-pimpit-text-muted line-through tabular-nums">
+                    {formatPrice(product.price_old!)}
                   </span>
                 )}
+                <div className="flex items-baseline gap-3 mt-0.5">
+                  <span className="text-4xl md:text-5xl font-bold tracking-tight text-pimpit-text tabular-nums">
+                    {formatPrice(displayPrice)}
+                  </span>
+                  {isB2B && product.price_b2b != null && (
+                    <span className="text-xs font-bold tracking-widest uppercase px-2 py-1 rounded border border-pimpit-accent/50 text-pimpit-accent">
+                      B2B
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1.5 text-xs text-pimpit-text-muted">
+                  Preț per bucată · TVA inclus
+                </p>
               </div>
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.24em] text-pimpit-text-muted">
-                preț / bucată · TVA inclus
-              </p>
-            </div>
 
-            {/* Fitment table */}
-            <div className="mt-8">
-              <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-pimpit-accent mb-3">
-                — Specificații fitment
+              {/* CTA */}
+              <div className="mt-6">
+                <ProductActions
+                  productId={product.id}
+                  stock={product.stock ?? 0}
+                  etValues={etValues}
+                  etMin={etMin}
+                  etMax={etMax}
+                  pcdOptions={pcdOptions}
+                />
               </div>
-              <div className="border-t border-pimpit-border">
-                {product.diameter != null && <SpecRow label="Diametru" value={`${product.diameter}"`} />}
-                {product.width != null && <SpecRow label="Lățime" value={`${product.width}"`} />}
-                {product.pcd && <SpecRow label="PCD" value={product.pcd} />}
-                {(product.et_offset != null || product.et_min != null) && <SpecRow label="ET" value={etLabel} />}
-                {product.center_bore != null && <SpecRow label="CB (mm)" value={product.center_bore} />}
-                {product.color && <SpecRow label="Culoare" value={product.color} />}
-                {product.finish && <SpecRow label="Finisaj" value={product.finish} />}
-                {product.weight != null && <SpecRow label="Greutate" value={`${product.weight} kg`} />}
-                {product.max_load != null && <SpecRow label="Sarcină max" value={`${product.max_load} kg`} />}
-              </div>
-              {product.certificate_url && (
-                <a
-                  href={product.certificate_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] border-b border-pimpit-accent/50 hover:border-pimpit-accent pb-1 transition-colors text-pimpit-accent"
-                >
-                  Certificat TÜV →
-                </a>
-              )}
-            </div>
-
-            {/* CTA */}
-            <div className="mt-10">
-              <ProductActions
-                productId={product.id}
-                stock={product.stock ?? 0}
-                etValues={etValues}
-                etMin={etMin}
-                etMax={etMax}
-                pcdOptions={pcdOptions}
-              />
             </div>
 
             {/* Accordion sections */}
-            <div className="mt-12 border-t border-pimpit-border">
+            <div className="mt-6 bg-white border border-pimpit-border rounded-md shadow-premium px-6 lg:px-7">
               {product.description && (
                 <AccordionSection title="Descriere" defaultOpen>
-                  <p className="text-sm text-pimpit-text-muted leading-relaxed whitespace-pre-line">{product.description}</p>
+                  <p className="text-sm text-pimpit-text leading-relaxed whitespace-pre-line">{product.description}</p>
                 </AccordionSection>
               )}
 
               <AccordionSection title="Verifică compatibilitatea cu mașina ta">
                 <p className="text-sm text-pimpit-text-muted mb-4 leading-relaxed">
-                  Selectează vehiculul tău pentru a confirma fitment-ul. Răspuns instant pe baza dimensiunilor jantei.
+                  Selectează vehiculul tău pentru a confirma fitment-ul.
                 </p>
-                <VehicleSelector variant="inline" ctaLabel="Verifică fitment-ul" />
+                <VehicleSelector variant="inline" ctaLabel="Verifică fitment" />
               </AccordionSection>
 
               <AccordionSection title="Specificații complete">
                 <div className="border-t border-pimpit-border">
+                  {product.diameter != null && <SpecRow label="Diametru" value={`${product.diameter}"`} />}
+                  {product.width != null && <SpecRow label="Lățime" value={`${product.width}"`} />}
+                  {product.pcd && <SpecRow label="PCD" value={product.pcd} />}
+                  {(product.et_offset != null || product.et_min != null) && <SpecRow label="ET" value={etLabel} />}
+                  {product.center_bore != null && <SpecRow label="CB (mm)" value={product.center_bore} />}
+                  {product.color && <SpecRow label="Culoare" value={product.color} />}
+                  {product.finish && <SpecRow label="Finisaj" value={product.finish} />}
+                  {product.weight != null && <SpecRow label="Greutate" value={`${product.weight} kg`} />}
+                  {product.max_load != null && <SpecRow label="Sarcină max" value={`${product.max_load} kg`} />}
                   {product.production_method && <SpecRow label="Fabricație" value={product.production_method} />}
                   {product.concave_profile && <SpecRow label="Profil concav" value={product.concave_profile} />}
                   {product.ean && <SpecRow label="EAN" value={product.ean} />}
@@ -359,14 +322,24 @@ export default async function ProductPage({ params }: { params: { slug: string }
                       value ? <SpecRow key={label} label={label} value={value} /> : null,
                     )}
                 </div>
+                {product.certificate_url && (
+                  <a
+                    href={product.certificate_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-pimpit-accent hover:text-pimpit-accent-hover transition-colors"
+                  >
+                    Vezi certificatul TÜV →
+                  </a>
+                )}
               </AccordionSection>
 
-              <AccordionSection title="Livrare &amp; retururi">
-                <ul className="space-y-2 text-sm text-pimpit-text-muted leading-relaxed">
-                  <li><span className="text-pimpit-accent">▸</span> Livrare 24–48h în România prin curier rapid</li>
-                  <li><span className="text-pimpit-accent">▸</span> Livrare gratuită la comenzi peste 1500 RON</li>
-                  <li><span className="text-pimpit-accent">▸</span> Retur 14 zile fără justificare (produs nemontat)</li>
-                  <li><span className="text-pimpit-accent">▸</span> Asistență fitment înainte și după comandă</li>
+              <AccordionSection title="Livrare & retururi">
+                <ul className="space-y-2 text-sm text-pimpit-text leading-relaxed">
+                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Livrare 24–48h în România prin curier rapid</li>
+                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Livrare gratuită la comenzi peste 1500 RON</li>
+                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Retur 14 zile fără justificare (produs nemontat)</li>
+                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Asistență fitment înainte și după comandă</li>
                 </ul>
               </AccordionSection>
             </div>
@@ -374,30 +347,28 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
       </div>
 
-      {/* Related carousel */}
+      {/* Related */}
       {related.length > 0 && (
-        <div className="border-t border-pimpit-border">
-          <div className="container mx-auto px-4 lg:px-8 py-14">
-            <div className="flex items-end justify-between mb-8">
+        <div className="bg-white border-t border-pimpit-border">
+          <div className="container mx-auto px-4 lg:px-8 py-12">
+            <div className="flex items-end justify-between mb-6">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.32em] text-pimpit-text-muted mb-2">
-                  <span className="text-pimpit-accent">—</span>&nbsp;&nbsp;Tot din {product.brand}
-                </div>
-                <h2 className="font-display font-medium uppercase tracking-tight text-2xl md:text-3xl text-pimpit-text">
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-pimpit-text">
                   Jante similare
                 </h2>
+                <p className="text-sm text-pimpit-text-muted mt-1">Alte modele {product.brand}</p>
               </div>
               <Link
                 href={`/jante?brand=${encodeURIComponent(product.brand)}`}
-                className="hidden sm:inline-flex font-mono text-[11px] uppercase tracking-[0.24em] text-pimpit-text-muted hover:text-pimpit-accent border-b border-pimpit-border hover:border-pimpit-accent pb-1 transition-colors"
+                className="hidden sm:inline-flex text-sm font-semibold text-pimpit-accent hover:text-pimpit-accent-hover transition-colors"
               >
-                Toate {product.brand} →
+                Vezi tot {product.brand} →
               </Link>
             </div>
             <div className="-mx-4 lg:-mx-8 px-4 lg:px-8 overflow-x-auto no-scrollbar">
-              <div className="flex gap-4 md:gap-5 pb-2">
+              <div className="flex gap-4 pb-2">
                 {related.slice(0, 8).map((p) => (
-                  <div key={p.id} className="w-[72vw] sm:w-[300px] xl:w-[320px] shrink-0">
+                  <div key={p.id} className="w-[72vw] sm:w-[280px] xl:w-[300px] shrink-0">
                     <ProductCard product={p} isB2B={isB2B} />
                   </div>
                 ))}
@@ -407,5 +378,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
       )}
     </div>
+  )
+}
+
+function FitChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-1 text-sm">
+      <span className="font-mono text-xs text-pimpit-text-muted">{label}</span>
+      <span className="font-semibold text-pimpit-text">{value}</span>
+    </span>
   )
 }

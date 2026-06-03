@@ -8,31 +8,26 @@ interface Props {
   isB2B: boolean
 }
 
-/**
- * Trending products row — horizontal scroll on mobile, grid on desktop.
- * Uses the standard ProductCard so cards stay consistent across the site.
- */
 export default function TrendingProducts({ products, isB2B }: Props) {
   if (!products.length) return null
 
   return (
-    <section className="bg-pimpit-bg border-t border-pimpit-border">
-      <div className="container mx-auto px-4 lg:px-8 py-16 md:py-20">
+    <section className="bg-pimpit-bg">
+      <div className="container mx-auto px-4 lg:px-8 py-10 lg:py-14">
         <SectionHeading
-          eyebrow="04 / Trending"
           title="Cele mai căutate"
-          subtitle="Modelele cu cea mai bună disponibilitate &amp; cele mai vândute săptămâna aceasta."
+          subtitle="Cele mai bine vândute jante din ultima săptămână"
           cta={
             <Link
               href="/jante"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-pimpit-text-muted hover:text-pimpit-accent border-b border-pimpit-border hover:border-pimpit-accent pb-1 transition-colors self-start md:self-end"
+              className="text-sm font-semibold text-pimpit-accent hover:text-pimpit-accent-hover transition-colors"
             >
               Vezi tot catalogul →
             </Link>
           }
         />
 
-        <div className="mt-10">
+        <div className="mt-6">
           {/* Mobile: horizontal scroll. Desktop: 4-col grid. */}
           <div className="lg:hidden -mx-4 px-4 overflow-x-auto no-scrollbar">
             <div className="flex gap-4 pb-2">

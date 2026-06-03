@@ -52,19 +52,21 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        /* pimpit.ro design system — light automotive editorial.
-           Use these for ALL storefront UI (carid-style structure, pimpit palette). */
+        /* pimpit.ro design system — premium light automotive.
+           Near-black text on white, shiny gold accents, Inter throughout. */
         pimpit: {
           bg: "#FFFFFF",
           surface: "#FFFFFF",
-          "surface-2": "#FAFAF9",   /* stone-50 */
-          border: "#E7E5E4",         /* stone-200 */
-          accent: "#B5933A",         /* deeper gold, reads on white */
-          "accent-hover": "#9F7D2D", /* even deeper for hover state */
-          text: "#1C1917",           /* stone-900 */
-          "text-muted": "#78716C",   /* stone-500 */
-          success: "#16A34A",        /* green-600 */
-          error: "#DC2626",          /* red-600 */
+          "surface-2": "#F7F7F5",     /* warm stone wash */
+          border: "#E5E5E0",           /* subtle warm border */
+          accent: "#B8860B",           /* darkgoldenrod — pops on white, premium */
+          "accent-hover": "#9A6F08",   /* deeper hover */
+          "accent-light": "#E5B95A",   /* light highlight (used in gradients) */
+          text: "#0A0A0A",             /* near-black for body copy */
+          "text-muted": "#525252",     /* zinc-600 — still very readable */
+          "text-subtle": "#737373",    /* zinc-500 — labels, captions */
+          success: "#16A34A",
+          error: "#DC2626",
         },
       },
       borderRadius: {
@@ -87,8 +89,24 @@ const config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontFamily: {
-        display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+        /* All non-mono UI uses Inter (loaded via next/font). Drop Barlow Condensed
+           in favour of a simple, highly readable sans-serif per user request. */
+        sans: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      backgroundImage: {
+        /* Premium shiny gold — used on primary CTAs to give a metallic shine. */
+        "gold-shine":
+          "linear-gradient(135deg, #E5B95A 0%, #C9A227 35%, #B8860B 65%, #8B6914 100%)",
+        "gold-shine-hover":
+          "linear-gradient(135deg, #F0C674 0%, #D4AF37 35%, #C9A227 65%, #9A6F08 100%)",
+      },
+      boxShadow: {
+        /* Premium card depth — barely-there, but enough to lift cards off the page. */
+        premium: "0 1px 2px 0 rgba(0,0,0,0.04), 0 4px 12px -2px rgba(0,0,0,0.06)",
+        "premium-hover": "0 4px 8px -2px rgba(0,0,0,0.08), 0 12px 24px -4px rgba(0,0,0,0.10)",
+        gold: "0 1px 2px 0 rgba(184,134,11,0.20), 0 4px 12px -2px rgba(184,134,11,0.18)",
       },
     },
   },

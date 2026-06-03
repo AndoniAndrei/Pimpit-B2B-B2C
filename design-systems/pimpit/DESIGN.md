@@ -5,17 +5,31 @@
 - Tone: premium automotive, technical authority, not generic e-commerce
 - Aesthetic: light editorial automotive — premium gold accents on warm-white, editorial typography (Barlow Condensed)
 
-## Color palette (light theme — dark mode is intentionally disabled)
+## Color palette (light premium theme — dark mode disabled)
 - Background: #FFFFFF
 - Surface (cards): #FFFFFF
-- Surface-2 (subtle wash): #FAFAF9 (stone-50)
-- Border: #E7E5E4 (stone-200)
-- Accent: #B5933A (deep gold — chosen for contrast on white; original brand mark #C9A84C still used decoratively in subtle washes)
-- Accent hover: #9F7D2D
-- Text: #1C1917 (stone-900)
-- Text muted: #78716C (stone-500)
+- Surface-2 (page wash): #F7F7F5 (warm stone)
+- Border: #E5E5E0
+- Accent: #B8860B (DarkGoldenRod — pops on white, 4.74:1 contrast)
+- Accent hover: #9A6F08
+- Accent light (highlight in gradients): #E5B95A
+- Text: #0A0A0A (near-black — max readability)
+- Text muted: #525252 (zinc-600 — still very readable)
+- Text subtle: #737373 (zinc-500 — small captions)
 - Success: #16A34A (green-600)
 - Error: #DC2626 (red-600)
+
+## Gold-shine primary CTA
+Premium gold buttons use the `.btn-gold` utility (defined in `globals.css`):
+- Base gradient: `linear-gradient(135deg, #E5B95A 0%, #C9A227 35%, #B8860B 65%, #8B6914 100%)`
+- Soft gold drop shadow
+- White text
+- Animated shine sweep on hover (`::before` pseudo-element with diagonal white gloss)
+- Hover gradient lightens + button lifts 1px
+
+Outline variant: `.btn-gold-outline` — 2px gold border, transparent fill, gold text, inverts on hover.
+
+Gold text shine: `.text-gold-shine` — gradient-clipped text for premium accents (logo `.RO`, hero highlight word).
 
 ## Typography
 - Headlines: wide-tracking, uppercase for specs (ET37 · 5X120)
@@ -38,9 +52,9 @@
 ## Implementation notes (live)
 
 ### Fonts wired
-- `Barlow Condensed` → `font-display` (CSS var `--font-display`, weights 400–800) — headlines, CTAs, brand block, spec labels
-- `JetBrains Mono` → `font-mono` (CSS var `--font-mono`) — fitment specs, monospace labels, prices (tabular nums)
-- Inter remains as `<body>` default for admin + readable body text
+- **Inter** (weights 300–900, via next/font) — used EVERYWHERE except spec badges. Simple, highly readable. Loaded as both `font-sans` and `font-display` (Tailwind alias).
+- **JetBrains Mono** → `font-mono` — used only for the inline Ø / J / PCD / ET / CB chips on cards. Subtle technical touch.
+- Barlow Condensed has been dropped (user feedback: harsh & not readable).
 
 ### Color tokens in use (raw hex, scoped to storefront components)
 - Bg base: `#0A0A0A` · Surface: `#141414` (cards), `#1E1E1E` (popovers)

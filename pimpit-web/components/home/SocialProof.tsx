@@ -1,4 +1,4 @@
-import { Package, Truck, Award, Star } from 'lucide-react'
+import { Package, Truck, Award, Shield } from 'lucide-react'
 
 interface Props {
   productCount: number
@@ -7,28 +7,26 @@ interface Props {
 
 export default function SocialProof({ productCount, brandCount }: Props) {
   const items = [
-    { Icon: Package, big: productCount.toLocaleString('ro-RO'), label: 'Jante în stoc' },
-    { Icon: Award, big: brandCount.toString(), label: 'Brand-uri verificate' },
-    { Icon: Truck, big: '24-48h', label: 'Livrare națională' },
-    { Icon: Star, big: 'TÜV / KBA', label: 'Certificate fitment' },
+    { Icon: Package, big: productCount.toLocaleString('ro-RO'), label: 'Jante în catalog' },
+    { Icon: Award,   big: brandCount.toString(),                label: 'Brand-uri verificate' },
+    { Icon: Truck,   big: '24-48h',                              label: 'Livrare națională' },
+    { Icon: Shield,  big: 'TÜV / KBA',                           label: 'Certificate fitment' },
   ]
 
   return (
-    <section className="bg-pimpit-bg border-t border-pimpit-border">
-      <div className="container mx-auto px-4 lg:px-8 py-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+    <section className="bg-white border-b border-pimpit-border">
+      <div className="container mx-auto px-4 lg:px-8 py-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-5">
           {items.map(({ Icon, big, label }) => (
-            <div key={label} className="flex items-center gap-4">
-              <div className="shrink-0 w-12 h-12 flex items-center justify-center border border-pimpit-border bg-pimpit-surface">
+            <div key={label} className="flex items-center gap-3">
+              <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-pimpit-accent/10">
                 <Icon className="w-5 h-5 text-pimpit-accent" />
               </div>
               <div>
-                <div className="font-display font-bold text-pimpit-text text-xl md:text-2xl tabular-nums tracking-tight">
+                <div className="font-bold text-pimpit-text text-base md:text-lg tabular-nums leading-tight">
                   {big}
                 </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-pimpit-text-muted">
-                  {label}
-                </div>
+                <div className="text-xs text-pimpit-text-muted">{label}</div>
               </div>
             </div>
           ))}

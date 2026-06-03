@@ -66,16 +66,16 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
     }
   }
 
-  const fieldLabel = 'block font-mono text-[10px] uppercase tracking-[0.28em] text-pimpit-text-muted mb-2'
+  const fieldLabel = 'block text-xs font-semibold text-pimpit-text mb-1.5'
   const fieldControl =
-    'w-full bg-pimpit-surface border border-pimpit-border px-3 py-2.5 text-sm text-pimpit-text font-mono focus:outline-none focus:border-pimpit-accent disabled:opacity-50 transition-colors'
+    'w-full bg-white border border-pimpit-border rounded-md px-3 py-2.5 text-sm text-pimpit-text focus:outline-none focus:border-pimpit-accent focus:ring-1 focus:ring-pimpit-accent disabled:opacity-50 transition-colors'
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {needsEt && (
         <label className="block">
           <span className={fieldLabel}>
-            ET {etMin != null && etMax != null ? `· ${etMin}–${etMax}` : ''}
+            ET {etMin != null && etMax != null ? `(disponibile: ${etMin}–${etMax})` : ''}
           </span>
           <select
             className={fieldControl}
@@ -116,7 +116,7 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
           type="number"
           min={1}
           max={stock || 1}
-          className="w-24 bg-pimpit-surface border border-pimpit-border px-3 py-2 text-sm text-pimpit-text font-mono text-center focus:outline-none focus:border-pimpit-accent disabled:opacity-50 transition-colors"
+          className="w-24 bg-white border border-pimpit-border rounded-md px-3 py-2 text-sm text-pimpit-text font-semibold text-center focus:outline-none focus:border-pimpit-accent focus:ring-1 focus:ring-pimpit-accent disabled:opacity-50 transition-colors"
           value={qty}
           onChange={e => setQty(Math.max(1, Math.min(stock || 1, parseInt(e.target.value) || 1)))}
           disabled={outOfStock || loading}
@@ -124,7 +124,7 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
       </div>
 
       {error && (
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-pimpit-error" role="alert">
+        <p className="text-sm font-medium text-pimpit-error" role="alert">
           {error}
         </p>
       )}
@@ -132,23 +132,20 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
       <button
         onClick={addToCart}
         disabled={outOfStock || loading}
-        className={`group w-full py-4 font-display font-semibold text-sm uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all disabled:cursor-not-allowed disabled:hover:translate-y-0
-          ${outOfStock
-            ? 'bg-pimpit-surface-2 text-pimpit-text-muted opacity-60'
-            : 'bg-pimpit-accent text-stone-900 hover:bg-pimpit-accent-hover hover:-translate-y-0.5'}
-        `}
+        className={`w-full py-4 rounded-md text-base ${
+          outOfStock
+            ? 'bg-pimpit-surface-2 text-pimpit-text-muted font-semibold cursor-not-allowed'
+            : 'btn-gold uppercase'
+        }`}
       >
         {loading ? 'Se adaugă…' : outOfStock ? 'Indisponibil' : 'Adaugă în coș'}
-        {!loading && !outOfStock && (
-          <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
-        )}
       </button>
 
       {!outOfStock && (
         <button
           onClick={addToCart}
           disabled={loading}
-          className="w-full py-3 font-display font-semibold uppercase tracking-[0.22em] text-xs border border-pimpit-accent text-pimpit-accent hover:bg-pimpit-accent/10 transition-colors"
+          className="btn-gold-outline w-full rounded-md py-3 text-sm uppercase"
         >
           Cumpără acum
         </button>

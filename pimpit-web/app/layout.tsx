@@ -1,15 +1,14 @@
 import type { Metadata } from 'next'
-import { Inter, Barlow_Condensed, JetBrains_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/shared/Navbar'
 import Footer from '@/components/shared/Footer'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
-const barlowCondensed = Barlow_Condensed({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-display',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-body',
   display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
 })
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' })
 
@@ -24,10 +23,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ro" className={`${barlowCondensed.variable} ${jetbrainsMono.variable} ${inter.variable}`}>
+    <html lang="ro" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className={`${inter.className} bg-pimpit-bg text-pimpit-text antialiased`}>
         <Navbar />
-        <main className="min-h-screen pt-16">
+        <main className="min-h-screen pt-16 lg:pt-[6.75rem]">
           {children}
         </main>
         <Footer />

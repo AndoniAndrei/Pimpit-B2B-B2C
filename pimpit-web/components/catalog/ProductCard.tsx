@@ -6,33 +6,33 @@ import { formatPrice } from '@/lib/utils'
 function StockBadge({ stock, stockIncoming }: { stock: number; stockIncoming: number }) {
   if (stock > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-success">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pimpit-success">
         <span className="w-1.5 h-1.5 bg-pimpit-success rounded-full" />
-        {stock} în stoc
+        În stoc ({stock})
       </span>
     )
   }
   if (stockIncoming > 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-accent">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pimpit-accent">
         <span className="w-1.5 h-1.5 bg-pimpit-accent rounded-full" />
-        {stockIncoming} la comandă
+        La comandă ({stockIncoming})
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text-muted">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-pimpit-text-muted">
       <span className="w-1.5 h-1.5 bg-pimpit-text-muted rounded-full" />
-      epuizat
+      Indisponibil
     </span>
   )
 }
 
 function SpecBadge({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-baseline gap-1 font-mono text-[10px] uppercase tracking-[0.14em]">
-      <span className="text-pimpit-text-muted">{label}</span>
-      <span className="text-pimpit-text">{value}</span>
+    <span className="inline-flex items-baseline gap-1 font-mono text-[10px] text-pimpit-text-muted">
+      <span>{label}</span>
+      <span className="text-pimpit-text font-semibold">{value}</span>
     </span>
   )
 }
@@ -56,21 +56,22 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
   const displayPrice = (isB2B && product.price_b2b != null) ? product.price_b2b : product.price
   const hasOld = product.price_old && product.price_old > displayPrice
   const outOfStock = (product.stock ?? 0) === 0
+  const discountPct = hasOld
+    ? Math.round(((product.price_old! - displayPrice) / product.price_old!) * 100)
+    : 0
 
   return (
     <Link
       href={`/jante/${product.slug}`}
-      className="group relative flex flex-col bg-pimpit-surface border border-pimpit-border overflow-hidden transition-all duration-300 hover:border-pimpit-accent hover:-translate-y-0.5"
+      className="group relative flex flex-col bg-white border border-pimpit-border rounded-md overflow-hidden shadow-premium hover:shadow-premium-hover hover:border-pimpit-accent/40 transition-all duration-200"
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-stone-50 via-white to-stone-100">
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-          style={{
-            background: 'radial-gradient(120% 80% at 0% 50%, rgba(181,147,58,0.10) 0%, transparent 55%)',
-          }}
-        />
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pimpit-surface-2 via-white to-pimpit-surface-2">
+        {discountPct > 0 && (
+          <span className="absolute top-3 left-3 z-10 bg-pimpit-error text-white text-xs font-bold px-2 py-1 rounded">
+            -{discountPct}%
+          </span>
+        )}
         <ProductImage
           src={product.images?.[0] || ''}
           alt={product.name}
@@ -79,36 +80,23 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         />
 
         {product.color && (
-          <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text bg-white/85 backdrop-blur-sm border border-pimpit-border px-2 py-1">
+          <span className="absolute top-3 right-3 text-[10px] font-medium text-pimpit-text bg-white/95 border border-pimpit-border px-2 py-1 rounded">
             {product.color}
           </span>
         )}
-
-        {/* Hover spec overlay */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 px-4 py-3 bg-gradient-to-t from-white/95 via-white/75 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
-        >
-          <div className="h-px w-8 mb-2 bg-pimpit-accent" />
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {specs.map(([k, v]) => (
-              <SpecBadge key={k} label={k} value={v} />
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1 gap-2.5 border-t border-pimpit-border">
-        <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-pimpit-accent">
+      <div className="p-4 flex flex-col flex-1 gap-2 border-t border-pimpit-border">
+        <div className="text-[11px] font-bold tracking-wider uppercase text-pimpit-accent">
           {product.brand}
         </div>
-        <h3 className="font-display text-base font-semibold text-pimpit-text leading-tight line-clamp-2 tracking-tight uppercase">
+        <h3 className="text-[15px] font-semibold text-pimpit-text leading-snug line-clamp-2">
           {product.name}
         </h3>
 
         {specs.length > 0 && (
-          <div className="flex flex-wrap gap-x-2.5 gap-y-1 pt-1">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 pt-0.5">
             {specs.map(([k, v]) => (
               <SpecBadge key={k} label={k} value={v} />
             ))}
@@ -119,31 +107,31 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
           <StockBadge stock={product.stock ?? 0} stockIncoming={product.stock_incoming ?? 0} />
           <div className="flex flex-col items-end leading-none">
             {hasOld && (
-              <span className="font-mono text-[10px] text-pimpit-text-muted line-through">
+              <span className="text-xs text-pimpit-text-muted line-through tabular-nums">
                 {formatPrice(product.price_old!)}
               </span>
             )}
-            <span className="font-display text-xl font-bold text-pimpit-text tabular-nums">
+            <span className="text-xl font-bold text-pimpit-text tabular-nums mt-0.5">
               {formatPrice(displayPrice)}
             </span>
             {isB2B && product.price_b2b != null && (
-              <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.2em] text-pimpit-accent">
-                B2B
+              <span className="mt-1 text-[9px] font-bold tracking-widest uppercase text-pimpit-accent">
+                Preț B2B
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* CTA — solid gold, square corners */}
+      {/* Hover CTA */}
       <div
-        className={`w-full font-display font-semibold text-sm uppercase tracking-[0.22em] py-3.5 text-center select-none transition-all duration-300
+        className={`w-full text-center text-sm font-semibold py-3 transition-all duration-300 select-none
           ${outOfStock
-            ? 'bg-pimpit-surface-2 text-pimpit-text-muted opacity-60'
-            : 'bg-pimpit-accent text-stone-900 md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0'}
+            ? 'bg-pimpit-surface-2 text-pimpit-text-muted'
+            : 'btn-gold rounded-none md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0'}
         `}
       >
-        {outOfStock ? 'Indisponibil' : 'Adaugă în coș'}
+        {outOfStock ? 'Indisponibil' : 'Adaugă în coș →'}
       </div>
     </Link>
   )
