@@ -76,7 +76,7 @@ export default function VehicleSelector({ variant = 'hero', ctaLabel = 'Caută j
         type="submit"
         className={
           (isHero ? 'mt-5 w-full py-4 ' : 'mt-3 w-full py-3 ') +
-          'group flex items-center justify-center gap-3 font-display font-semibold uppercase tracking-[0.22em] text-sm bg-pimpit-accent text-pimpit-bg hover:bg-pimpit-accent-hover transition-colors disabled:opacity-50'
+          'group flex items-center justify-center gap-3 font-display font-semibold uppercase tracking-[0.22em] text-sm bg-pimpit-accent text-stone-900 hover:bg-pimpit-accent-hover transition-colors disabled:opacity-50'
         }
       >
         {ctaLabel}

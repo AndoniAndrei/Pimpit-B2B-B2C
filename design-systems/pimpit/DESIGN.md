@@ -3,13 +3,19 @@
 ## Brand identity
 - Segment: aftermarket alloy wheels, tuning enthusiast, Romania/EU
 - Tone: premium automotive, technical authority, not generic e-commerce
-- Aesthetic: dark-first, editorial, automotive editorial (think Vossen/Concaver vibes)
+- Aesthetic: light editorial automotive — premium gold accents on warm-white, editorial typography (Barlow Condensed)
 
-## Color palette
-- Primary: #0A0A0A (obsidian)
-- Accent: #C9A84C (gold — premium, not cheap yellow)
-- Surface: #141414 / #1E1E1E
-- Text: #F5F5F5 / #A0A0A0 muted
+## Color palette (light theme — dark mode is intentionally disabled)
+- Background: #FFFFFF
+- Surface (cards): #FFFFFF
+- Surface-2 (subtle wash): #FAFAF9 (stone-50)
+- Border: #E7E5E4 (stone-200)
+- Accent: #B5933A (deep gold — chosen for contrast on white; original brand mark #C9A84C still used decoratively in subtle washes)
+- Accent hover: #9F7D2D
+- Text: #1C1917 (stone-900)
+- Text muted: #78716C (stone-500)
+- Success: #16A34A (green-600)
+- Error: #DC2626 (red-600)
 
 ## Typography
 - Headlines: wide-tracking, uppercase for specs (ET37 · 5X120)
@@ -23,17 +29,18 @@
 - Filters: sidebar dark panel, no white backgrounds
 
 ## What to AVOID
-- Generic white e-commerce cards (not Amazon, not eMAG)
-- Rounded pastel buttons
-- Stock photo hero sections
-- Inter / Roboto / Arial fonts
+- Pastel rounded buttons / pill CTAs
+- Stock photo hero sections — use product renders or editorial CSS compositions
+- Inter / Roboto / Arial for headlines (body Inter is fine; headlines must use Barlow Condensed)
+- Cheap "yellow" — accent stays in the deep-gold range (#B5933A → #C9A84C)
+- Dark mode (intentionally disabled — see Change Log 2026-06-03)
 
 ## Implementation notes (live)
 
 ### Fonts wired
-- `Space Grotesk` → `font-display` (CSS var `--font-display`) — headlines, CTAs, brand block
-- `JetBrains Mono` → `font-mono` (CSS var `--font-mono`) — fitment specs, labels, prices (tabular nums)
-- Inter remains as `<body>` default for admin + non-storefront pages (legacy)
+- `Barlow Condensed` → `font-display` (CSS var `--font-display`, weights 400–800) — headlines, CTAs, brand block, spec labels
+- `JetBrains Mono` → `font-mono` (CSS var `--font-mono`) — fitment specs, monospace labels, prices (tabular nums)
+- Inter remains as `<body>` default for admin + readable body text
 
 ### Color tokens in use (raw hex, scoped to storefront components)
 - Bg base: `#0A0A0A` · Surface: `#141414` (cards), `#1E1E1E` (popovers)

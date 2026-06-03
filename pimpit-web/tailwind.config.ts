@@ -52,19 +52,19 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        /* pimpit.ro design system — dark automotive editorial.
+        /* pimpit.ro design system — light automotive editorial.
            Use these for ALL storefront UI (carid-style structure, pimpit palette). */
         pimpit: {
-          bg: "#0A0A0A",
-          surface: "#141414",
-          "surface-2": "#1E1E1E",
-          border: "#2A2A2A",
-          accent: "#C9A84C",
-          "accent-hover": "#E2C06A",
-          text: "#F5F5F5",
-          "text-muted": "#8A8A8A",
-          success: "#4CAF50",
-          error: "#EF4444",
+          bg: "#FFFFFF",
+          surface: "#FFFFFF",
+          "surface-2": "#FAFAF9",   /* stone-50 */
+          border: "#E7E5E4",         /* stone-200 */
+          accent: "#B5933A",         /* deeper gold, reads on white */
+          "accent-hover": "#9F7D2D", /* even deeper for hover state */
+          text: "#1C1917",           /* stone-900 */
+          "text-muted": "#78716C",   /* stone-500 */
+          success: "#16A34A",        /* green-600 */
+          error: "#DC2626",          /* red-600 */
         },
       },
       borderRadius: {

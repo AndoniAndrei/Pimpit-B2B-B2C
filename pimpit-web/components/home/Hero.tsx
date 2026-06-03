@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import VehicleSelector from './VehicleSelector'
 
 /**
- * Homepage hero — CARiD-style structure, pimpit dark editorial palette.
+ * Homepage hero — CARiD-style structure, light pimpit palette.
  * Headline + vehicle Year/Make/Model selector on the left, CSS-composed
  * wheel anchor with side-light from the left on the right. Subtle parallax.
  */
@@ -42,24 +42,24 @@ export default function Hero() {
 
   return (
     <section className="relative w-full overflow-hidden bg-pimpit-bg text-pimpit-text -mt-16 pt-16 min-h-[92vh] md:min-h-screen">
-      {/* Vignette */}
+      {/* Warm stone vignette */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(120% 90% at 100% 100%, #0A0A0A 30%, transparent 75%), radial-gradient(80% 60% at 50% 0%, #1a1a1a 0%, transparent 70%)',
+            'radial-gradient(120% 90% at 100% 100%, #FFFFFF 30%, transparent 75%), radial-gradient(80% 60% at 50% 0%, #FAFAF9 0%, transparent 70%)',
         }}
       />
 
-      {/* Gold side-light parallax layer */}
+      {/* Gold side-light parallax layer (subtle on white) */}
       <div
         ref={lightRef}
         aria-hidden
         className="absolute inset-0 pointer-events-none will-change-transform"
         style={{
           background:
-            'radial-gradient(60% 70% at 8% 55%, rgba(201,168,76,0.22) 0%, rgba(201,168,76,0.06) 35%, transparent 65%)',
+            'radial-gradient(60% 70% at 8% 55%, rgba(181,147,58,0.10) 0%, rgba(181,147,58,0.03) 35%, transparent 65%)',
         }}
       />
 
@@ -96,7 +96,7 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Wheel anchor */}
+          {/* Wheel anchor — kept as a dark editorial product render on white */}
           <div className="md:col-span-5 relative flex items-center justify-center md:justify-end">
             <div
               ref={wheelRef}
@@ -118,24 +118,24 @@ export default function Hero() {
 }
 
 function Wheel() {
-  const GOLD = '#C9A84C'
+  const GOLD = '#B5933A'
   return (
     <div
       className="absolute inset-0 rounded-full"
       style={{
         background: `
           radial-gradient(circle at 20% 45%, rgba(255,233,170,0.35) 0%, transparent 28%),
-          radial-gradient(circle at 50% 50%, #1f1f1f 0%, #0d0d0d 60%, #050505 100%)
+          radial-gradient(circle at 50% 50%, #2a2a2a 0%, #141414 60%, #0a0a0a 100%)
         `,
         boxShadow:
-          '0 60px 120px -30px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,255,255,0.04), inset -20px 0 60px rgba(0,0,0,0.85), inset 30px 0 80px rgba(201,168,76,0.08)',
+          '0 60px 120px -30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.05), inset -20px 0 60px rgba(0,0,0,0.85), inset 30px 0 80px rgba(181,147,58,0.10)',
       }}
     >
       <div
         className="absolute inset-[3%] rounded-full"
         style={{
           background:
-            'conic-gradient(from 200deg, #2a2a2a, #0a0a0a 25%, #1a1a1a 50%, #0a0a0a 75%, #2a2a2a)',
+            'conic-gradient(from 200deg, #3a3a3a, #0a0a0a 25%, #1f1f1f 50%, #0a0a0a 75%, #3a3a3a)',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)',
         }}
       />
@@ -143,35 +143,35 @@ function Wheel() {
         className="absolute inset-[8%] rounded-full"
         style={{
           background:
-            'conic-gradient(from 0deg, #181818 0deg, #2e2e2e 15deg, #0c0c0c 30deg, #1f1f1f 45deg, #0c0c0c 60deg, #2e2e2e 75deg, #181818 90deg, #2e2e2e 105deg, #0c0c0c 120deg, #1f1f1f 135deg, #0c0c0c 150deg, #2e2e2e 165deg, #181818 180deg, #2e2e2e 195deg, #0c0c0c 210deg, #1f1f1f 225deg, #0c0c0c 240deg, #2e2e2e 255deg, #181818 270deg, #2e2e2e 285deg, #0c0c0c 300deg, #1f1f1f 315deg, #0c0c0c 330deg, #2e2e2e 345deg, #181818 360deg)',
+            'conic-gradient(from 0deg, #1d1d1d 0deg, #353535 15deg, #0c0c0c 30deg, #242424 45deg, #0c0c0c 60deg, #353535 75deg, #1d1d1d 90deg, #353535 105deg, #0c0c0c 120deg, #242424 135deg, #0c0c0c 150deg, #353535 165deg, #1d1d1d 180deg, #353535 195deg, #0c0c0c 210deg, #242424 225deg, #0c0c0c 240deg, #353535 255deg, #1d1d1d 270deg, #353535 285deg, #0c0c0c 300deg, #242424 315deg, #0c0c0c 330deg, #353535 345deg, #1d1d1d 360deg)',
         }}
       />
       <div
         className="absolute inset-[8%] rounded-full pointer-events-none"
         style={{
           background:
-            'radial-gradient(60% 70% at 15% 50%, rgba(201,168,76,0.25) 0%, transparent 55%)',
+            'radial-gradient(60% 70% at 15% 50%, rgba(181,147,58,0.30) 0%, transparent 55%)',
           mixBlendMode: 'screen',
         }}
       />
       <div
         className="absolute inset-[36%] rounded-full"
         style={{
-          background: 'radial-gradient(circle at 35% 45%, #2a2620 0%, #0c0c0c 70%)',
-          boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), inset 8px 0 20px rgba(201,168,76,0.1)',
+          background: 'radial-gradient(circle at 35% 45%, #3a342a 0%, #0c0c0c 70%)',
+          boxShadow: 'inset 0 0 30px rgba(0,0,0,0.9), inset 8px 0 20px rgba(181,147,58,0.15)',
         }}
       />
       <div
         className="absolute inset-[44%] rounded-full"
         style={{
           background:
-            'radial-gradient(circle at 30% 35%, #3a342a 0%, #161310 60%, #050505 100%)',
-          boxShadow: 'inset 0 0 0 1px rgba(201,168,76,0.25), 0 4px 12px rgba(0,0,0,0.6)',
+            'radial-gradient(circle at 30% 35%, #4a4438 0%, #1a1612 60%, #050505 100%)',
+          boxShadow: 'inset 0 0 0 1px rgba(181,147,58,0.3), 0 4px 12px rgba(0,0,0,0.4)',
         }}
       />
       <div
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[5%] h-[5%] rounded-full"
-        style={{ background: GOLD, boxShadow: '0 0 12px rgba(201,168,76,0.5)' }}
+        style={{ background: GOLD, boxShadow: '0 0 12px rgba(181,147,58,0.5)' }}
       />
     </div>
   )

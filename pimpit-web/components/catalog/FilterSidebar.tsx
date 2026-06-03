@@ -59,7 +59,7 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: ()
         }`}
       >
         {checked && (
-          <svg className="w-3 h-3 text-pimpit-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg className="w-3 h-3 text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         )}
@@ -76,7 +76,7 @@ function PillButton({ active, onClick, children }: { active: boolean; onClick: (
       onClick={onClick}
       className={`px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] border transition-colors
         ${active
-          ? 'bg-pimpit-accent text-pimpit-bg border-pimpit-accent'
+          ? 'bg-pimpit-accent text-stone-900 border-pimpit-accent'
           : 'bg-pimpit-bg text-pimpit-text-muted border-pimpit-border hover:border-pimpit-accent hover:text-pimpit-text'}
       `}
     >

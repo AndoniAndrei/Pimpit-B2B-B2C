@@ -63,12 +63,12 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
       className="group relative flex flex-col bg-pimpit-surface border border-pimpit-border overflow-hidden transition-all duration-300 hover:border-pimpit-accent hover:-translate-y-0.5"
     >
       {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pimpit-surface-2 via-pimpit-surface to-pimpit-bg">
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-stone-50 via-white to-stone-100">
         <div
           aria-hidden
           className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            background: 'radial-gradient(120% 80% at 0% 50%, rgba(201,168,76,0.10) 0%, transparent 55%)',
+            background: 'radial-gradient(120% 80% at 0% 50%, rgba(181,147,58,0.10) 0%, transparent 55%)',
           }}
         />
         <ProductImage
@@ -79,7 +79,7 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         />
 
         {product.color && (
-          <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text bg-pimpit-bg/70 backdrop-blur-sm border border-pimpit-border px-2 py-1">
+          <span className="absolute top-3 left-3 font-mono text-[10px] uppercase tracking-[0.18em] text-pimpit-text bg-white/85 backdrop-blur-sm border border-pimpit-border px-2 py-1">
             {product.color}
           </span>
         )}
@@ -87,7 +87,7 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         {/* Hover spec overlay */}
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 px-4 py-3 bg-gradient-to-t from-pimpit-bg/90 via-pimpit-bg/60 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+          className="absolute inset-x-0 bottom-0 px-4 py-3 bg-gradient-to-t from-white/95 via-white/75 to-transparent opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
         >
           <div className="h-px w-8 mb-2 bg-pimpit-accent" />
           <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -140,7 +140,7 @@ export default function ProductCard({ product, isB2B }: { product: Product; isB2
         className={`w-full font-display font-semibold text-sm uppercase tracking-[0.22em] py-3.5 text-center select-none transition-all duration-300
           ${outOfStock
             ? 'bg-pimpit-surface-2 text-pimpit-text-muted opacity-60'
-            : 'bg-pimpit-accent text-pimpit-bg md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0'}
+            : 'bg-pimpit-accent text-stone-900 md:opacity-0 md:translate-y-1 md:group-hover:opacity-100 md:group-hover:translate-y-0'}
         `}
       >
         {outOfStock ? 'Indisponibil' : 'Adaugă în coș'}

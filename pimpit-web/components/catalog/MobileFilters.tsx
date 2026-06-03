@@ -33,7 +33,7 @@ export default function MobileFilters({ options, activeCount }: { options: Filte
         <SlidersHorizontal className="w-4 h-4 shrink-0" />
         <span>Filtre</span>
         {activeCount > 0 && (
-          <span className="bg-pimpit-accent text-pimpit-bg font-mono text-[10px] font-bold min-w-[20px] h-5 px-1 flex items-center justify-center">
+          <span className="bg-pimpit-accent text-stone-900 font-mono text-[10px] font-bold min-w-[20px] h-5 px-1 flex items-center justify-center">
             {activeCount}
           </span>
         )}
@@ -70,7 +70,7 @@ export default function MobileFilters({ options, activeCount }: { options: Filte
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-pimpit-bg border-t border-pimpit-border">
               <button
                 onClick={() => setOpen(false)}
-                className="w-full bg-pimpit-accent hover:bg-pimpit-accent-hover text-pimpit-bg py-3.5 font-display font-semibold uppercase tracking-[0.22em] text-sm flex items-center justify-center gap-3 transition-colors"
+                className="w-full bg-pimpit-accent hover:bg-pimpit-accent-hover text-stone-900 py-3.5 font-display font-semibold uppercase tracking-[0.22em] text-sm flex items-center justify-center gap-3 transition-colors"
               >
                 Arată jantele
                 {activeCount > 0 && (

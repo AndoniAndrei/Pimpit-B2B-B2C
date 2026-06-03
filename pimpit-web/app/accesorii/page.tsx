@@ -142,7 +142,7 @@ export default async function AccesoriiPage({ searchParams }: { searchParams: Se
                 <p className="text-pimpit-text-muted text-sm mb-6">Încearcă să modifici filtrele sau termenul de căutare.</p>
                 <Link
                   href="/accesorii"
-                  className="inline-flex items-center gap-2 font-display font-semibold uppercase tracking-[0.22em] text-xs px-5 py-3 bg-pimpit-accent text-pimpit-bg hover:bg-pimpit-accent-hover transition-colors"
+                  className="inline-flex items-center gap-2 font-display font-semibold uppercase tracking-[0.22em] text-xs px-5 py-3 bg-pimpit-accent text-stone-900 hover:bg-pimpit-accent-hover transition-colors"
                 >
                   Resetează filtrele →
                 </Link>
@@ -199,7 +199,7 @@ function PaginationLink({ searchParams, page, active, children }: {
     <Link href={`/accesorii?${params.toString()}`}
       className={`px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.18em] border transition-colors
         ${active
-          ? 'bg-pimpit-accent text-pimpit-bg border-pimpit-accent'
+          ? 'bg-pimpit-accent text-stone-900 border-pimpit-accent'
           : 'bg-pimpit-surface text-pimpit-text-muted border-pimpit-border hover:border-pimpit-accent hover:text-pimpit-text'}`}>
       {children}
     </Link>

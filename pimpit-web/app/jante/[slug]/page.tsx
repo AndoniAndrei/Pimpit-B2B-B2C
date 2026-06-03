@@ -174,13 +174,13 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 xl:gap-16">
           {/* LEFT 60% — image + media */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-pimpit-surface-2 via-pimpit-surface to-pimpit-bg border border-pimpit-border">
+            <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-stone-50 via-white to-stone-100 border border-pimpit-border">
               <div
                 aria-hidden
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    'radial-gradient(60% 70% at 10% 50%, rgba(201,168,76,0.10) 0%, transparent 60%)',
+                    'radial-gradient(60% 70% at 10% 50%, rgba(181,147,58,0.10) 0%, transparent 60%)',
                 }}
               />
               <ProductImage

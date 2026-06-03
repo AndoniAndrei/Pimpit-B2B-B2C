@@ -135,7 +135,7 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
         className={`group w-full py-4 font-display font-semibold text-sm uppercase tracking-[0.22em] flex items-center justify-center gap-3 transition-all disabled:cursor-not-allowed disabled:hover:translate-y-0
           ${outOfStock
             ? 'bg-pimpit-surface-2 text-pimpit-text-muted opacity-60'
-            : 'bg-pimpit-accent text-pimpit-bg hover:bg-pimpit-accent-hover hover:-translate-y-0.5'}
+            : 'bg-pimpit-accent text-stone-900 hover:bg-pimpit-accent-hover hover:-translate-y-0.5'}
         `}
       >
         {loading ? 'Se adaugă…' : outOfStock ? 'Indisponibil' : 'Adaugă în coș'}
