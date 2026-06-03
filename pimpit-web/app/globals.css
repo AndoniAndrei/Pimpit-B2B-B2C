@@ -5,47 +5,47 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 4%;            /* near-black for max readability */
+    --foreground: 0 0% 0%;            /* PURE BLACK */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 36 90% 38%;            /* premium gold #B8860B */
+    --popover-foreground: 0 0% 0%;
+    --primary: 44 71% 38%;            /* rich saturated gold #A8841D */
     --primary-foreground: 0 0% 100%;
     --secondary: 30 6% 96%;
-    --secondary-foreground: 0 0% 4%;
+    --secondary-foreground: 0 0% 0%;
     --muted: 30 6% 96%;
-    --muted-foreground: 0 0% 32%;     /* zinc-600 */
+    --muted-foreground: 0 0% 25%;     /* zinc-700, very readable */
     --accent: 30 6% 96%;
-    --accent-foreground: 0 0% 4%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 30 8% 90%;
     --input: 30 8% 90%;
-    --ring: 36 90% 38%;
+    --ring: 44 71% 38%;
     --radius: 0.25rem;
   }
 
   .dark {
     --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 36 90% 38%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 44 71% 38%;
     --primary-foreground: 0 0% 100%;
     --secondary: 30 6% 96%;
-    --secondary-foreground: 0 0% 4%;
+    --secondary-foreground: 0 0% 0%;
     --muted: 30 6% 96%;
-    --muted-foreground: 0 0% 32%;
+    --muted-foreground: 0 0% 25%;
     --accent: 30 6% 96%;
-    --accent-foreground: 0 0% 4%;
+    --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 30 8% 90%;
     --input: 30 8% 90%;
-    --ring: 36 90% 38%;
+    --ring: 44 71% 38%;
   }
 }
 
@@ -58,6 +58,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Sharper letter rendering on Mac/iOS for the system font stack. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -70,15 +74,67 @@
 }
 
 @layer components {
-  /* PREMIUM GOLD BUTTON — used on every primary CTA across the site.
-     Includes a metallic gradient, soft drop shadow, and a moving shine
-     overlay that sweeps left→right on hover. Looks great on white. */
+  /* PREMIUM METALLIC GOLD BUTTON — used on every primary CTA.
+     Combines: brighter metallic gradient, embossed top highlight,
+     gold drop shadow, continuous subtle background shimmer, plus a
+     diagonal white gloss sweep on hover. Designed to read as luxury
+     on a pure white page. */
   .btn-gold {
-    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden
-           bg-gold-shine text-white font-semibold tracking-wide
-           shadow-gold transition-all duration-300
-           hover:bg-gold-shine-hover hover:-translate-y-px hover:shadow-[0_8px_20px_-4px_rgba(184,134,11,0.30)];
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(
+      135deg,
+      #f5d06b 0%,
+      #d4af37 25%,
+      #b8860b 55%,
+      #876715 100%
+    );
+    background-size: 200% 200%;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.45) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+      0 2px 4px -1px rgba(168, 132, 29, 0.30),
+      0 6px 14px -3px rgba(168, 132, 29, 0.30);
+    transition:
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      background 0.3s ease;
+    animation: gold-shimmer 6s ease-in-out infinite;
   }
+  .btn-gold:hover {
+    background: linear-gradient(
+      135deg,
+      #ffe08a 0%,
+      #e5c257 25%,
+      #c9a227 55%,
+      #9a7919 100%
+    );
+    background-size: 200% 200%;
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.55) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+      0 4px 8px -2px rgba(168, 132, 29, 0.40),
+      0 12px 22px -4px rgba(168, 132, 29, 0.32);
+  }
+  .btn-gold:active {
+    transform: translateY(0);
+  }
+  .btn-gold:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    animation: none;
+  }
+  /* Diagonal white-gloss sweep on hover. */
   .btn-gold::before {
     content: '';
     position: absolute;
@@ -89,30 +145,58 @@
     background: linear-gradient(
       120deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0.45) 50%,
       transparent 100%
     );
     transform: skewX(-20deg);
-    transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.65s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
   }
   .btn-gold:hover::before {
     left: 125%;
   }
 
-  /* Outline variant — slim gold border for secondary CTAs */
+  /* Outline variant — slim gold border for secondary CTAs. */
   .btn-gold-outline {
-    @apply inline-flex items-center justify-center gap-2 border-2 border-pimpit-accent
-           text-pimpit-accent font-semibold tracking-wide bg-white
-           transition-all duration-200
-           hover:bg-pimpit-accent hover:text-white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 2px solid #a8841d;
+    color: #876715;
+    background-color: #ffffff;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition:
+      background 0.25s ease,
+      color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  .btn-gold-outline:hover {
+    background: linear-gradient(135deg, #f5d06b 0%, #d4af37 50%, #b8860b 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 12px -2px rgba(168, 132, 29, 0.30);
   }
 
-  /* Gold text accent with a subtle gradient sheen — premium without being gaudy. */
+  /* Gold gradient-clipped text — used for logo .RO and highlight words.
+     Animated background-position adds a continuous metallic shimmer. */
   .text-gold-shine {
-    background: linear-gradient(135deg, #B8860B 0%, #D4AF37 50%, #B8860B 100%);
+    background-image: linear-gradient(
+      120deg,
+      #876715 0%,
+      #b8860b 20%,
+      #d4af37 40%,
+      #f5d06b 50%,
+      #d4af37 60%,
+      #b8860b 80%,
+      #876715 100%
+    );
+    background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gold-shimmer 5s linear infinite;
+    font-weight: 700;
   }
 }

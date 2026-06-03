@@ -10,26 +10,28 @@
 - Surface (cards): #FFFFFF
 - Surface-2 (page wash): #F7F7F5 (warm stone)
 - Border: #E5E5E0
-- Accent: #B8860B (DarkGoldenRod — pops on white, 4.74:1 contrast)
-- Accent hover: #9A6F08
-- Accent light (highlight in gradients): #E5B95A
-- Text: #0A0A0A (near-black — max readability)
-- Text muted: #525252 (zinc-600 — still very readable)
+- Accent: #A8841D (rich saturated gold — pops on white, 5.2:1 contrast)
+- Accent hover: #876715
+- Accent light (highlight in gradients): #F5D06B
+- Text: **#000000 (pure black)** — max readability
+- Text muted: #404040 (zinc-700 — still very readable)
 - Text subtle: #737373 (zinc-500 — small captions)
 - Success: #16A34A (green-600)
 - Error: #DC2626 (red-600)
 
 ## Gold-shine primary CTA
-Premium gold buttons use the `.btn-gold` utility (defined in `globals.css`):
-- Base gradient: `linear-gradient(135deg, #E5B95A 0%, #C9A227 35%, #B8860B 65%, #8B6914 100%)`
-- Soft gold drop shadow
-- White text
-- Animated shine sweep on hover (`::before` pseudo-element with diagonal white gloss)
-- Hover gradient lightens + button lifts 1px
+Premium metallic gold buttons use the `.btn-gold` utility (defined in `globals.css`):
+- Base gradient: `linear-gradient(135deg, #F5D06B 0%, #D4AF37 25%, #B8860B 55%, #876715 100%)` (brighter peak, deeper shadow than before — reads as luxury on white)
+- **Embossed look**: inset white highlight on top edge, inset dark shadow on bottom
+- **Soft gold drop shadow** with 2px tight + 6px ambient layers
+- White text with subtle 1px text-shadow for sharpness on metallic background
+- **Continuous shimmer animation** (`gold-shimmer 6s ease-in-out infinite`) — background-position drifts gently, giving a subtle live-metal feel
+- **Diagonal white-gloss sweep** on hover (`::before` pseudo-element, 0.65s)
+- Hover state: brighter gradient + 1px lift + bigger shadow
 
-Outline variant: `.btn-gold-outline` — 2px gold border, transparent fill, gold text, inverts on hover.
+Outline variant `.btn-gold-outline`: 2px gold border, white fill, gold text, fills with gradient gold on hover.
 
-Gold text shine: `.text-gold-shine` — gradient-clipped text for premium accents (logo `.RO`, hero highlight word).
+Gold text shine `.text-gold-shine`: gradient-clipped text with continuous shimmer animation (5s linear infinite). Used for logo `.RO`, hero highlight word, eyebrow accents.
 
 ## Typography
 - Headlines: wide-tracking, uppercase for specs (ET37 · 5X120)
@@ -52,9 +54,10 @@ Gold text shine: `.text-gold-shine` — gradient-clipped text for premium accent
 ## Implementation notes (live)
 
 ### Fonts wired
-- **Inter** (weights 300–900, via next/font) — used EVERYWHERE except spec badges. Simple, highly readable. Loaded as both `font-sans` and `font-display` (Tailwind alias).
-- **JetBrains Mono** → `font-mono` — used only for the inline Ø / J / PCD / ET / CB chips on cards. Subtle technical touch.
-- Barlow Condensed has been dropped (user feedback: harsh & not readable).
+- **Native system font stack** — `-apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`. Each OS renders text in its flagship sans (SF Pro on Mac/iOS, Segoe UI Variable on Windows, Roboto on Android). Simplest, most legible, most premium-feeling — same approach used by Stripe, Vercel, GitHub.
+- **JetBrains Mono** → `font-mono` — used only for the inline Ø / J / PCD / ET / CB chips on product cards. Technical touch.
+- Inter has been dropped (user feedback: still not happy with it). Barlow Condensed dropped earlier.
+- Body styles use `-webkit-font-smoothing: antialiased` and `text-rendering: optimizeLegibility` so the OS font renders crisply.
 
 ### Color tokens in use (raw hex, scoped to storefront components)
 - Bg base: `#0A0A0A` · Surface: `#141414` (cards), `#1E1E1E` (popovers)

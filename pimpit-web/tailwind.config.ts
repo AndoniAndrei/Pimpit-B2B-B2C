@@ -53,18 +53,18 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         /* pimpit.ro design system — premium light automotive.
-           Near-black text on white, shiny gold accents, Inter throughout. */
+           Pure black text on white, shiny luxury gold, native system font. */
         pimpit: {
           bg: "#FFFFFF",
           surface: "#FFFFFF",
-          "surface-2": "#F7F7F5",     /* warm stone wash */
-          border: "#E5E5E0",           /* subtle warm border */
-          accent: "#B8860B",           /* darkgoldenrod — pops on white, premium */
-          "accent-hover": "#9A6F08",   /* deeper hover */
-          "accent-light": "#E5B95A",   /* light highlight (used in gradients) */
-          text: "#0A0A0A",             /* near-black for body copy */
-          "text-muted": "#525252",     /* zinc-600 — still very readable */
-          "text-subtle": "#737373",    /* zinc-500 — labels, captions */
+          "surface-2": "#F7F7F5",     /* warm stone wash for catalog pages */
+          border: "#E5E5E0",
+          accent: "#A8841D",           /* rich saturated gold, 5.2:1 contrast */
+          "accent-hover": "#876715",
+          "accent-light": "#F5D06B",   /* bright shine highlight */
+          text: "#000000",             /* PURE BLACK for max readability */
+          "text-muted": "#404040",     /* zinc-700 — still very readable */
+          "text-subtle": "#737373",    /* zinc-500 — small captions */
           success: "#16A34A",
           error: "#DC2626",
         },
@@ -73,6 +73,40 @@ const config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        /* Native system stack — each OS renders in its flagship sans
+           (SF Pro on Mac, Segoe UI on Windows, Roboto on Android).
+           Simplest, most readable, most premium. */
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI Variable"',
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+        ],
+        display: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI Variable"',
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+        ],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      backgroundImage: {
+        /* Premium metallic gold — brighter peak, deeper shadow for a real
+           "shine" feel on white backgrounds. Used on primary CTAs. */
+        "gold-shine":
+          "linear-gradient(135deg, #F5D06B 0%, #D4AF37 25%, #B8860B 55%, #876715 100%)",
+        "gold-shine-hover":
+          "linear-gradient(135deg, #FFE08A 0%, #E5C257 25%, #C9A227 55%, #9A7919 100%)",
       },
       keyframes: {
         "accordion-down": {
@@ -83,24 +117,16 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        /* Slow continuous shimmer for premium gold buttons. */
+        "gold-shimmer": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-      },
-      fontFamily: {
-        /* All non-mono UI uses Inter (loaded via next/font). Drop Barlow Condensed
-           in favour of a simple, highly readable sans-serif per user request. */
-        sans: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
-      },
-      backgroundImage: {
-        /* Premium shiny gold — used on primary CTAs to give a metallic shine. */
-        "gold-shine":
-          "linear-gradient(135deg, #E5B95A 0%, #C9A227 35%, #B8860B 65%, #8B6914 100%)",
-        "gold-shine-hover":
-          "linear-gradient(135deg, #F0C674 0%, #D4AF37 35%, #C9A227 65%, #9A6F08 100%)",
+        "gold-shimmer": "gold-shimmer 6s ease-in-out infinite",
       },
       boxShadow: {
         /* Premium card depth — barely-there, but enough to lift cards off the page. */
