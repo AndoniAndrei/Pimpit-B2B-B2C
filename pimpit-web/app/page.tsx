@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Hero from '@/components/home/Hero'
+import PromoBanner from '@/components/home/PromoBanner'
 import CategoryTiles from '@/components/home/CategoryTiles'
 import SocialProof from '@/components/home/SocialProof'
 import FeaturedBrands from '@/components/home/FeaturedBrands'
@@ -45,6 +46,7 @@ export default async function Home() {
   return (
     <>
       <Hero />
+      <PromoBanner />
       <SocialProof productCount={count ?? products.length} brandCount={presentBrands.length} />
       <CategoryTiles />
       <FeaturedBrands brands={featuredBrands} />

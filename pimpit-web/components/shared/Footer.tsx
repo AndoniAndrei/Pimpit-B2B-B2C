@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Shield, Truck, CreditCard, Award } from 'lucide-react'
+import NewsletterSignup from './NewsletterSignup'
 
 const FOOTER_NAV = {
   Catalog: [
@@ -36,6 +37,9 @@ const TRUST_ITEMS = [
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-pimpit-border text-pimpit-text">
+      {/* Newsletter signup */}
+      <NewsletterSignup />
+
       {/* Trust strip */}
       <div className="bg-pimpit-surface-2 border-b border-pimpit-border">
         <div className="container mx-auto px-4 lg:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
