@@ -52,6 +52,20 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* pimpit.ro design system — dark automotive editorial.
+           Use these for ALL storefront UI (carid-style structure, pimpit palette). */
+        pimpit: {
+          bg: "#0A0A0A",
+          surface: "#141414",
+          "surface-2": "#1E1E1E",
+          border: "#2A2A2A",
+          accent: "#C9A84C",
+          "accent-hover": "#E2C06A",
+          text: "#F5F5F5",
+          "text-muted": "#8A8A8A",
+          success: "#4CAF50",
+          error: "#EF4444",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

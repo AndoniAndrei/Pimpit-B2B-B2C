@@ -1,10 +1,15 @@
 import type { Metadata } from 'next'
-import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
+import { Inter, Barlow_Condensed, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/shared/Navbar'
 
-const inter = Inter({ subsets: ['latin'] })
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-display', display: 'swap' })
+const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+})
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' })
 
 export const metadata: Metadata = {
@@ -18,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ro" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
+    <html lang="ro" className={`${barlowCondensed.variable} ${jetbrainsMono.variable} ${inter.variable}`}>
       <body className={inter.className}>
         <Navbar />
         <main className="min-h-screen pt-16">
