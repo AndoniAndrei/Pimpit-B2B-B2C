@@ -1,28 +1,5 @@
-import Link from 'next/link'
+import Hero from '@/components/home/Hero'
 
 export default function Home() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
-      <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-6 max-w-3xl">
-        Găsește jantele perfecte pentru mașina ta
-      </h1>
-      <p className="text-base sm:text-xl text-muted-foreground mb-8 max-w-2xl">
-        Catalog unificat cu mii de modele de la cei mai buni producători, actualizat în timp real.
-      </p>
-      <div className="flex flex-wrap gap-4 justify-center">
-        <Link
-          href="/jante"
-          className="bg-primary text-primary-foreground px-8 py-3 rounded-md font-medium hover:bg-primary/90 transition-colors"
-        >
-          Explorează Catalogul
-        </Link>
-        <Link
-          href="/auth/login"
-          className="bg-secondary text-secondary-foreground px-8 py-3 rounded-md font-medium hover:bg-secondary/80 transition-colors"
-        >
-          Cont B2B / B2C
-        </Link>
-      </div>
-    </div>
-  )
+  return <Hero />
 }

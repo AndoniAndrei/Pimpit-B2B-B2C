@@ -66,15 +66,20 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
     }
   }
 
+  const GOLD = '#C9A84C'
+  const fieldLabel = 'block font-mono text-[10px] uppercase tracking-[0.28em] text-zinc-500 mb-2'
+  const fieldControl =
+    'w-full bg-[#141414] border border-white/10 px-3 py-2.5 text-sm text-zinc-100 font-mono focus:outline-none focus:border-[color:var(--pimpit-gold)] disabled:opacity-50 transition-colors'
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5" style={{ ['--pimpit-gold' as any]: GOLD }}>
       {needsEt && (
         <label className="block">
-          <span className="block text-sm font-medium mb-1">
-            ET {etMin != null && etMax != null ? `(valori disponibile: ${etMin}–${etMax})` : ''}
+          <span className={fieldLabel}>
+            ET {etMin != null && etMax != null ? `· ${etMin}–${etMax}` : ''}
           </span>
           <select
-            className="w-full border rounded-lg px-3 py-2 bg-background"
+            className={fieldControl}
             value={etChoice}
             onChange={e => setEtChoice(e.target.value)}
             disabled={outOfStock || loading}
@@ -90,9 +95,9 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
 
       {needsPcd && (
         <label className="block">
-          <span className="block text-sm font-medium mb-1">Prindere (PCD)</span>
+          <span className={fieldLabel}>Prindere (PCD)</span>
           <select
-            className="w-full border rounded-lg px-3 py-2 bg-background"
+            className={fieldControl}
             value={pcdChoice}
             onChange={e => setPcdChoice(e.target.value)}
             disabled={outOfStock || loading}
@@ -106,13 +111,13 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
         </label>
       )}
 
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium">Cantitate</label>
+      <div className="flex items-center gap-4">
+        <span className={fieldLabel + ' mb-0'}>Cantitate</span>
         <input
           type="number"
           min={1}
           max={stock || 1}
-          className="w-20 border rounded-lg px-2 py-1.5 bg-background"
+          className="w-24 bg-[#141414] border border-white/10 px-3 py-2 text-sm text-zinc-100 font-mono text-center focus:outline-none focus:border-[color:var(--pimpit-gold)] disabled:opacity-50 transition-colors"
           value={qty}
           onChange={e => setQty(Math.max(1, Math.min(stock || 1, parseInt(e.target.value) || 1)))}
           disabled={outOfStock || loading}
@@ -120,15 +125,21 @@ export default function ProductActions({ productId, stock, etValues, etMin, etMa
       </div>
 
       {error && (
-        <p className="text-sm text-destructive" role="alert">{error}</p>
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-red-400" role="alert">
+          {error}
+        </p>
       )}
 
       <button
         onClick={addToCart}
         disabled={outOfStock || loading}
-        className="w-full bg-primary text-primary-foreground py-4 rounded-lg font-bold text-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="group w-full py-4 font-display font-semibold text-sm uppercase tracking-[0.22em] flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed transition-transform hover:-translate-y-0.5 disabled:hover:translate-y-0"
+        style={{ background: outOfStock ? '#3a3a3a' : GOLD, color: outOfStock ? '#a0a0a0' : '#0A0A0A' }}
       >
         {loading ? 'Se adaugă…' : outOfStock ? 'Indisponibil' : 'Adaugă în coș'}
+        {!loading && !outOfStock && (
+          <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+        )}
       </button>
     </div>
   )
