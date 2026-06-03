@@ -1,17 +1,23 @@
 import Link from 'next/link'
-import { Disc, Wrench, Settings, Layers, Sparkles, Gauge, ChevronRight } from 'lucide-react'
+import { Disc, Wrench, Sparkles, ChevronRight, Tag, Clock } from 'lucide-react'
 
+/**
+ * Each tile must link to a route + query that produces real results
+ * against the live catalog. No fabricated category filters
+ * (e.g. `?category=performance`, `?finish=Lustruit`) — only real DB
+ * fields (`diameter`, `sort`, `is_active`) or top-level routes.
+ */
 const CATEGORIES = [
-  { label: 'Jante 17"',  sub: 'Compacte & daily', href: '/jante?diameter=17', Icon: Disc },
-  { label: 'Jante 18"',  sub: 'Berline & SUV',    href: '/jante?diameter=18', Icon: Disc },
-  { label: 'Jante 19"',  sub: 'Sport & GT',       href: '/jante?diameter=19', Icon: Disc },
-  { label: 'Jante 20"',  sub: 'Premium & SUV',    href: '/jante?diameter=20', Icon: Disc },
-  { label: 'Jante 21"+', sub: 'Hyper & luxury',   href: '/jante?diameter=21&diameter=22&diameter=23', Icon: Sparkles },
-  { label: 'Accesorii',  sub: 'Distanțiere & prezoane', href: '/accesorii', Icon: Wrench },
-  { label: 'Performanță', sub: 'Suspensii & frâne', href: '/accesorii?category=performance', Icon: Gauge },
-  { label: 'Stilizare',   sub: 'Finisaje & culori', href: '/jante?finish=Lustruit', Icon: Settings },
-  { label: 'Sezoniere',   sub: 'Iarnă & vară',      href: '/jante', Icon: Layers },
-  { label: 'Vezi tot',    sub: 'Catalog complet',   href: '/jante', Icon: ChevronRight },
+  { label: 'Jante 17"',  href: '/jante?diameter=17', Icon: Disc },
+  { label: 'Jante 18"',  href: '/jante?diameter=18', Icon: Disc },
+  { label: 'Jante 19"',  href: '/jante?diameter=19', Icon: Disc },
+  { label: 'Jante 20"',  href: '/jante?diameter=20', Icon: Disc },
+  { label: 'Jante 21"+', href: '/jante?diameter=21&diameter=22&diameter=23', Icon: Sparkles },
+  { label: 'Accesorii',  href: '/accesorii', Icon: Wrench },
+  { label: 'Cele mai noi', href: '/jante?sort=newest', Icon: Clock },
+  { label: 'Preț ↑',     href: '/jante?sort=price_asc', Icon: Tag },
+  { label: 'Toate brand-urile', href: '/jante', Icon: ChevronRight },
+  { label: 'Vezi tot',   href: '/jante', Icon: ChevronRight },
 ]
 
 export default function CategoryTiles() {
@@ -24,7 +30,7 @@ export default function CategoryTiles() {
         />
 
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {CATEGORIES.map(({ label, sub, href, Icon }) => (
+          {CATEGORIES.map(({ label, href, Icon }) => (
             <Link
               key={href + label}
               href={href}
@@ -34,7 +40,6 @@ export default function CategoryTiles() {
                 <Icon className="w-7 h-7 text-pimpit-text group-hover:text-pimpit-accent transition-colors" />
               </div>
               <div className="text-sm font-semibold text-pimpit-text">{label}</div>
-              <div className="text-xs text-pimpit-text-muted mt-0.5">{sub}</div>
             </Link>
           ))}
         </div>

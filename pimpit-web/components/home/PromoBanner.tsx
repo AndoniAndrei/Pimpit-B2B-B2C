@@ -1,12 +1,12 @@
 import Link from 'next/link'
 
 /**
- * Visual promo banner strip — large editorial tiles below the hero.
- * CARiD-style row of branded showcase tiles linking to filtered catalog.
- * Each tile has a CSS-composed visual + bold typography (no asset deps).
+ * Visual catalog navigation strip below the hero. Each tile links into
+ * a real catalog view; no discount percentages, no brand claims, no
+ * marketing numbers. Only navigation labels + descriptive subtitles.
  */
 
-type Accent = 'red' | 'gold' | 'dark'
+type Accent = 'gold' | 'dark' | 'neutral'
 
 const TILES: Array<{
   eyebrow: string
@@ -17,28 +17,28 @@ const TILES: Array<{
   cta: string
 }> = [
   {
-    eyebrow: 'Reducere până la',
-    headline: '30% OFF',
-    sub: 'Modele aftermarket din stoc',
-    href: '/jante?sort=price_asc',
-    accent: 'red',
-    cta: 'Vezi ofertele',
+    eyebrow: 'Daily',
+    headline: 'Jante 17"–18"',
+    sub: 'Pentru utilizare zilnică',
+    href: '/jante?diameter=17&diameter=18',
+    accent: 'neutral',
+    cta: 'Vezi modelele',
   },
   {
-    eyebrow: 'Nou în catalog',
-    headline: 'Premium 20"+',
-    sub: 'Hyper & luxury — Concaver, JUDD, OZ',
-    href: '/jante?diameter=20&diameter=21&diameter=22',
+    eyebrow: 'Performance',
+    headline: 'Jante 19"–20"',
+    sub: 'Berline sport &amp; SUV',
+    href: '/jante?diameter=19&diameter=20',
     accent: 'gold',
     cta: 'Explorează',
   },
   {
-    eyebrow: 'Selecția redacției',
-    headline: 'Daily favorites',
-    sub: 'Jante 18" pentru utilizare zilnică',
-    href: '/jante?diameter=18',
+    eyebrow: 'Premium',
+    headline: 'Jante 21"+',
+    sub: 'Hyper &amp; luxury',
+    href: '/jante?diameter=21&diameter=22&diameter=23',
     accent: 'dark',
-    cta: 'Vezi modelele',
+    cta: 'Descoperă',
   },
 ]
 
@@ -68,19 +68,10 @@ function PromoTile({
   headline: string
   sub: string
   href: string
-  accent: 'red' | 'gold' | 'dark'
+  accent: Accent
   cta: string
 }) {
-  // Visual treatment varies per accent — each tile has its own personality
   const variants = {
-    red: {
-      bg: 'linear-gradient(135deg, #1a1a1a 0%, #2a0a0a 100%)',
-      shine: 'radial-gradient(70% 80% at 100% 50%, rgba(220,38,38,0.30) 0%, transparent 60%)',
-      eyebrowColor: 'text-red-400',
-      headlineColor: 'text-white',
-      subColor: 'text-white/70',
-      cta: 'text-red-400 hover:text-red-300',
-    },
     gold: {
       bg: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 60%, #050505 100%)',
       shine: 'radial-gradient(70% 80% at 0% 50%, rgba(212,175,55,0.28) 0%, transparent 60%)',
@@ -90,8 +81,16 @@ function PromoTile({
       cta: 'text-gold-shine',
     },
     dark: {
+      bg: 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
+      shine: 'radial-gradient(70% 80% at 100% 50%, rgba(212,175,55,0.18) 0%, transparent 60%)',
+      eyebrowColor: 'text-pimpit-accent-light',
+      headlineColor: 'text-white',
+      subColor: 'text-white/70',
+      cta: 'text-pimpit-accent-light',
+    },
+    neutral: {
       bg: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)',
-      shine: 'radial-gradient(70% 80% at 100% 50%, rgba(184,134,11,0.15) 0%, transparent 60%)',
+      shine: 'radial-gradient(70% 80% at 100% 50%, rgba(168,132,29,0.12) 0%, transparent 60%)',
       eyebrowColor: 'text-pimpit-accent',
       headlineColor: 'text-pimpit-text',
       subColor: 'text-pimpit-text-muted',
@@ -105,19 +104,15 @@ function PromoTile({
       className="group relative overflow-hidden rounded-md border border-pimpit-border shadow-premium hover:shadow-premium-hover transition-shadow"
     >
       <div className="relative aspect-[16/8] md:aspect-[16/10]">
-        {/* Background */}
         <div className="absolute inset-0" style={{ background: variants.bg }} />
-        {/* Shine wash */}
         <div className="absolute inset-0 pointer-events-none" style={{ background: variants.shine }} />
 
-        {/* Decorative wheel ring — only on dark accents */}
-        {accent !== 'dark' && (
+        {accent !== 'neutral' && (
           <div className="absolute -right-12 -bottom-12 md:-right-16 md:-bottom-16 w-44 h-44 md:w-56 md:h-56">
-            <DecoRing accent={accent} />
+            <DecoRing />
           </div>
         )}
 
-        {/* Copy */}
         <div className="relative h-full flex flex-col justify-between p-5 lg:p-6">
           <div>
             <div className={`text-[10px] font-bold tracking-[0.22em] uppercase mb-2 ${variants.eyebrowColor}`}>
@@ -138,8 +133,8 @@ function PromoTile({
   )
 }
 
-function DecoRing({ accent }: { accent: 'red' | 'gold' }) {
-  const ringColor = accent === 'red' ? 'rgba(220,38,38,0.45)' : 'rgba(212,175,55,0.55)'
+function DecoRing() {
+  const ringColor = 'rgba(212,175,55,0.55)'
   return (
     <div
       className="absolute inset-0 rounded-full"

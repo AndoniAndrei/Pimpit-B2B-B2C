@@ -2,11 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Award, BadgeCheck } from 'lucide-react'
+import { Award } from 'lucide-react'
 import ProductImage from '@/components/catalog/ProductImage'
 import ProductCard from '@/components/catalog/ProductCard'
 import AccordionSection from '@/components/catalog/AccordionSection'
-import VehicleSelector from '@/components/home/VehicleSelector'
 import ProductActions from './ProductActions'
 import { splitAndNormalizePcds } from '@/lib/pcdUtils'
 import { formatPrice } from '@/lib/utils'
@@ -40,7 +39,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!product) return { title: 'Produs inexistent' }
   return {
     title: `${product.brand} ${product.name} ${product.diameter}x${product.width} ${product.pcd} | Pimpit.ro`,
-    description: `Cumpără ${product.brand} ${product.name} la cel mai bun preț.`,
+    description: `${product.brand} ${product.name} — disponibilă pe pimpit.ro.`,
   }
 }
 
@@ -246,12 +245,14 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 {product.center_bore != null && <FitChip label="CB" value={String(product.center_bore)} />}
               </div>
 
-              {/* Cert badges */}
-              <div className="mt-5 flex flex-wrap gap-2">
-                {product.certificate_url && <CertBadge Icon={Award} label="TÜV" sublabel="Certificat" />}
-                <CertBadge Icon={Shield} label="KBA" sublabel="Approved" />
-                <CertBadge Icon={BadgeCheck} label="JWL" sublabel="Tested" />
-              </div>
+              {/* Cert badges — ONLY shown when backed by real data.
+                  Currently the schema only tracks TÜV (`certificate_url`).
+                  Add KBA/JWL badges here only after the columns exist. */}
+              {product.certificate_url && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <CertBadge Icon={Award} label="TÜV" sublabel="Certificat disponibil" />
+                </div>
+              )}
 
               {/* Price */}
               <div className="mt-6 pb-6 border-b border-pimpit-border">
@@ -296,12 +297,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 </AccordionSection>
               )}
 
-              <AccordionSection title="Verifică compatibilitatea cu mașina ta">
-                <p className="text-sm text-pimpit-text-muted mb-4 leading-relaxed">
-                  Selectează vehiculul tău pentru a confirma fitment-ul.
-                </p>
-                <VehicleSelector variant="inline" ctaLabel="Verifică fitment" />
-              </AccordionSection>
+              {/* "Verifică compatibilitatea" — dezactivat. Verificarea
+                  automată de fitment necesită o tabelă vehicle ⇄ spec care
+                  nu există încă în schema. Reactivat după build-ul acelei
+                  funcționalități. */}
 
               <AccordionSection title="Specificații complete">
                 <div className="border-t border-pimpit-border">
@@ -334,14 +333,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 )}
               </AccordionSection>
 
-              <AccordionSection title="Livrare & retururi">
-                <ul className="space-y-2 text-sm text-pimpit-text leading-relaxed">
-                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Livrare 24–48h în România prin curier rapid</li>
-                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Livrare gratuită la comenzi peste 1500 RON</li>
-                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Retur 14 zile fără justificare (produs nemontat)</li>
-                  <li className="flex items-start gap-2"><span className="text-pimpit-accent mt-0.5">✓</span> Asistență fitment înainte și după comandă</li>
-                </ul>
-              </AccordionSection>
+              {/* "Livrare & retururi" — secțiune dezactivată până când există
+                  date reale în DB (transportatori, intervale, politică de
+                  retur). Cifrele și termenii apar aici doar când le susținem
+                  cu date confirmate. */}
             </div>
           </div>
         </div>

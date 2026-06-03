@@ -54,7 +54,8 @@ export default function Hero() {
                   <span className="text-gold-shine">mașina ta.</span>
                 </h1>
                 <p className="mt-4 text-white/70 text-sm md:text-base leading-relaxed max-w-md">
-                  Catalog unificat &middot; mii de modele aftermarket &middot; fitment garantat
+                  Caută după diametru, lățime, PCD, ET și CB &mdash; filtrele
+                  catalogului mapează exact fitment-ul jantei.
                 </p>
                 <div className="mt-6 inline-flex">
                   <span className="btn-gold rounded-md px-6 py-3 text-sm uppercase">

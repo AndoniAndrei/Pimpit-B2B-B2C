@@ -6,11 +6,13 @@ interface Props {
 }
 
 export default function SocialProof({ productCount, brandCount }: Props) {
+  // The first two stats are derived from real DB counts; the last two
+  // are descriptive labels (no fabricated numbers or cert names).
   const items = [
     { Icon: Package, big: productCount.toLocaleString('ro-RO'), label: 'Jante în catalog' },
-    { Icon: Award,   big: brandCount.toString(),                label: 'Brand-uri verificate' },
-    { Icon: Truck,   big: '24-48h',                              label: 'Livrare națională' },
-    { Icon: Shield,  big: 'TÜV / KBA',                           label: 'Certificate fitment' },
+    { Icon: Award,   big: brandCount.toString(),                label: 'Brand-uri în catalog' },
+    { Icon: Truck,   big: 'Curier',                              label: 'Livrare națională' },
+    { Icon: Shield,  big: 'Plată sigură',                        label: 'Tranzacții criptate' },
   ]
 
   return (

@@ -50,7 +50,7 @@ export default function Navbar() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Caută după brand, model, cod sau dimensiune (ex: 19x9.5 5x112)"
+              placeholder="Caută după brand, model sau cod produs"
               className="w-full bg-white border border-pimpit-border rounded-md pl-4 pr-12 py-2.5 text-sm text-pimpit-text placeholder:text-pimpit-text-muted focus:outline-none focus:border-pimpit-accent focus:ring-1 focus:ring-pimpit-accent transition-colors"
             />
             <button

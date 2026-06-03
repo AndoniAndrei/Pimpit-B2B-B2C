@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mon
 
 export const metadata: Metadata = {
   title: 'Pimpit.ro | Catalog Jante Auto',
-  description: 'Cel mai mare catalog de jante auto din România.',
+  description: 'Catalog de jante auto aftermarket agregat din mai mulți furnizori.',
 }
 
 export default function RootLayout({

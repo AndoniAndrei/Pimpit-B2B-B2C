@@ -71,6 +71,15 @@ Gold text shine `.text-gold-shine`: gradient-clipped text with continuous shimme
 - `app/jante/[slug]/page.tsx` — 60/40 grid (image left, specs+CTA right), fitment ribbon, stock block, brand block in gold border, fitment spec table (monospace), related wheels row (4 cards, same brand fallback diameter), TÜV certificate link in gold underline.
 - `app/jante/[slug]/ProductActions.tsx` — dark monospace selects with gold focus border, solid gold CTA with arrow affordance.
 
+### No-fabrication policy
+**Strict rule:** every piece of information visible in the storefront UI must be backed by real data. Concretely:
+- Certification badges (TÜV / KBA / JWL / KW) appear **only** when the matching column or relation exists in the schema **and** has a value for that specific product. Currently only TÜV is tracked (`products.certificate_url`).
+- Numeric claims about shipping, returns, discounts, sales velocity, "X% off", "in stock for X days" etc. must come from real per-supplier / per-product config — not hardcoded marketing copy.
+- Promotional copy ("cel mai bun preț", "fitment garantat", "mii de modele") is disallowed unless reflected by actual data or measurable guarantees.
+- Hardcoded brand lists in navigation must be filtered against a live `presentBrands` query (homepage `FeaturedBrands` already does this). Hardcoded brand links in the footer were removed for this reason.
+- Forms that have no backend wiring (newsletter signup pre-launch) should not exist in the UI — they fake a contract with the user.
+- The vehicle Year/Make/Model selector is currently navigation-only; copy must reflect that, never imply automated fitment validation.
+
 ### Rules for future changes
 - Pimpit dark is the GLOBAL default (`:root` in `globals.css` flipped 2026-06-03). Admin and every storefront page inherit it via shadcn tokens.
 - Use `pimpit-*` tailwind tokens (`bg-pimpit-bg`, `text-pimpit-accent`, etc.) for storefront UI; shadcn tokens (`bg-card`, `text-foreground`, `bg-primary`) work everywhere and map to the same dark palette.

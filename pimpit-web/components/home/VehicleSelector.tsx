@@ -9,7 +9,7 @@ interface Props {
   ctaLabel?: string
 }
 
-export default function VehicleSelector({ variant = 'hero', ctaLabel = 'Caută jante compatibile' }: Props) {
+export default function VehicleSelector({ variant = 'hero', ctaLabel = 'Răsfoiește catalogul' }: Props) {
   const router = useRouter()
   const [year, setYear] = useState('')
   const [make, setMake] = useState('')
@@ -29,9 +29,10 @@ export default function VehicleSelector({ variant = 'hero', ctaLabel = 'Caută j
   return (
     <form onSubmit={submit} className="w-full">
       <div className="mb-4">
-        <h2 className="text-base font-bold text-pimpit-text">Selectează vehiculul</h2>
+        <h2 className="text-base font-bold text-pimpit-text">Mașina ta</h2>
         <p className="text-xs text-pimpit-text-muted mt-0.5">
-          Găsim jantele compatibile pentru mașina ta
+          Selecția vehiculului nu filtrează încă fitment-ul &mdash; folosește
+          catalogul cu filtre după Ø, J, PCD și ET.
         </p>
       </div>
 

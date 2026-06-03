@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Shield, Truck, CreditCard, Award } from 'lucide-react'
-import NewsletterSignup from './NewsletterSignup'
 
 const FOOTER_NAV = {
   Catalog: [
@@ -17,19 +16,25 @@ const FOOTER_NAV = {
     { label: 'Coșul meu', href: '/cos' },
     { label: 'Comenzile mele', href: '/cont' },
   ],
-  'Brand-uri': [
-    { label: 'Concaver', href: '/jante?brand=Concaver' },
-    { label: 'Japan Racing', href: '/jante?brand=Japan%20Racing' },
-    { label: 'JUDD Forged', href: '/jante?brand=JUDD' },
-    { label: 'Sixnine', href: '/jante?brand=Sixnine' },
-    { label: 'MB Design', href: '/jante?brand=MB%20Design' },
+  // Note: no hardcoded brand names — those should only appear when
+  // proven to exist in the catalog. The homepage FeaturedBrands strip
+  // already lists actual brands from the DB.
+  Răsfoiește: [
+    { label: 'Toate jantele', href: '/jante' },
     { label: 'Toate brand-urile', href: '/jante' },
+    { label: 'Reduceri (preț ↑)', href: '/jante?sort=price_asc' },
+    { label: 'Cele mai noi', href: '/jante?sort=newest' },
+    { label: 'Accesorii', href: '/accesorii' },
   ],
 }
 
+// Note: trust labels are intentionally generic descriptors of how the
+// platform works. Specific commitments (livrare X ore, certificat X,
+// garanție Y luni) should only appear here when backed by configurable
+// per-supplier or per-product data.
 const TRUST_ITEMS = [
-  { Icon: Award,      label: 'Certificat TÜV / KBA' },
-  { Icon: Truck,      label: 'Livrare 24-48h în țară' },
+  { Icon: Award,      label: 'Catalog aftermarket' },
+  { Icon: Truck,      label: 'Livrare națională' },
   { Icon: Shield,     label: 'Garanție producător' },
   { Icon: CreditCard, label: 'Plată securizată' },
 ]
@@ -37,9 +42,6 @@ const TRUST_ITEMS = [
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-pimpit-border text-pimpit-text">
-      {/* Newsletter signup */}
-      <NewsletterSignup />
-
       {/* Trust strip */}
       <div className="bg-pimpit-surface-2 border-b border-pimpit-border">
         <div className="container mx-auto px-4 lg:px-8 py-5 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -59,8 +61,8 @@ export default function Footer() {
             PIMPIT<span className="text-gold-shine">.RO</span>
           </Link>
           <p className="mt-3 text-sm text-pimpit-text-muted leading-relaxed max-w-xs">
-            Catalog premium de jante aliaj &amp; accesorii tuning. Aftermarket
-            verificat, fitment exact, livrare rapidă.
+            Catalog de jante aliaj &amp; accesorii tuning agregate din mai mulți
+            furnizori aftermarket.
           </p>
           <div className="mt-5 text-xs text-pimpit-text-muted">
             Est. 2024 · România

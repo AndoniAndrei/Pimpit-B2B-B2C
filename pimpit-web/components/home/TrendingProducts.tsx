@@ -15,8 +15,8 @@ export default function TrendingProducts({ products, isB2B }: Props) {
     <section className="bg-pimpit-bg">
       <div className="container mx-auto px-4 lg:px-8 py-10 lg:py-14">
         <SectionHeading
-          title="Cele mai căutate"
-          subtitle="Cele mai bine vândute jante din ultima săptămână"
+          title="Disponibile din stoc"
+          subtitle="Jante cu cea mai mare disponibilitate în acest moment"
           cta={
             <Link
               href="/jante"

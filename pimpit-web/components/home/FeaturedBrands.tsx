@@ -16,8 +16,8 @@ export default function FeaturedBrands({ brands }: Props) {
     <section className="bg-pimpit-surface-2 border-y border-pimpit-border">
       <div className="container mx-auto px-4 lg:px-8 py-10 lg:py-14">
         <SectionHeading
-          title="Brand-uri populare"
-          subtitle="Producători aftermarket cu certificare TÜV / KBA"
+          title="Brand-uri în catalog"
+          subtitle="Producători aftermarket disponibili acum"
           cta={
             <Link
               href="/jante"
