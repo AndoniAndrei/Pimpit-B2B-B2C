@@ -1,0 +1,145 @@
+.pimpit-cs {
+	margin: 1.5em 0;
+	font-size: 16px;
+}
+
+.pimpit-cs__title {
+	margin: 0 0 .75em;
+	font-size: 1.4em;
+}
+
+.pimpit-cs__form {
+	background: #f7f7f7;
+	border: 1px solid #e2e2e2;
+	border-radius: 8px;
+	padding: 1em 1.25em;
+}
+
+.pimpit-cs__row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: .75em;
+	margin-bottom: 1em;
+}
+
+.pimpit-cs__field {
+	display: flex;
+	flex-direction: column;
+	font-size: .9em;
+}
+
+.pimpit-cs__field > span {
+	font-weight: 600;
+	margin-bottom: .25em;
+	color: #333;
+}
+
+.pimpit-cs__field select {
+	width: 100%;
+	padding: .5em .6em;
+	border: 1px solid #cfcfcf;
+	border-radius: 6px;
+	background: #fff;
+	font-size: 1em;
+}
+
+.pimpit-cs__field select:disabled {
+	background: #efefef;
+	color: #888;
+	cursor: not-allowed;
+}
+
+.pimpit-cs__submit {
+	display: inline-block;
+	min-width: 200px;
+}
+
+.pimpit-cs__submit[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+}
+
+.pimpit-cs__status {
+	margin: .5em 0 0;
+	font-size: .9em;
+	color: #555;
+	min-height: 1.2em;
+}
+
+.pimpit-cs__results {
+	margin-top: 1.5em;
+}
+
+.pimpit-cs__section {
+	margin-bottom: 2em;
+}
+
+.pimpit-cs__section-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	margin-bottom: .75em;
+	border-bottom: 1px solid #ddd;
+	padding-bottom: .25em;
+}
+
+.pimpit-cs__section-head h4 {
+	margin: 0;
+	font-size: 1.2em;
+}
+
+.pimpit-cs__count {
+	font-size: .9em;
+	color: #666;
+}
+
+.pimpit-cs__grid {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 1em;
+}
+
+.pimpit-cs__card {
+	background: #fff;
+	border: 1px solid #eaeaea;
+	border-radius: 8px;
+	padding: .75em;
+	transition: box-shadow .15s ease;
+}
+
+.pimpit-cs__card:hover {
+	box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+}
+
+.pimpit-cs__card-link {
+	color: inherit;
+	text-decoration: none;
+	display: block;
+}
+
+.pimpit-cs__card-img {
+	width: 100%;
+	height: auto;
+	display: block;
+	margin-bottom: .5em;
+}
+
+.pimpit-cs__card-title {
+	margin: 0 0 .25em;
+	font-size: .95em;
+	font-weight: 600;
+}
+
+.pimpit-cs__card-price {
+	font-size: .95em;
+	color: #1a1a1a;
+}
+
+.pimpit-cs__empty {
+	color: #777;
+	font-style: italic;
+	padding: 1em 0;
+}
