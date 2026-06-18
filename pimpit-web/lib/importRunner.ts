@@ -67,6 +67,15 @@ function generateUniqueSlugs(products: ParsedProduct[]): Map<ParsedProduct, stri
 
 async function fetchFeed(supplier: any): Promise<Buffer> {
   let url: string = supplier.feed_url;
+
+  // Allow feeds hosted in our own /public folder by storing a relative path
+  // like "/feeds/sixnine.csv". Resolve against NEXT_PUBLIC_SITE_URL (falls back
+  // to localhost in dev) so the runner can still fetch it server-side.
+  if (url && url.startsWith('/')) {
+    const base = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
+    url = base + url;
+  }
+
   const headers: Record<string, string> = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/csv,application/json,*/*;q=0.8',
