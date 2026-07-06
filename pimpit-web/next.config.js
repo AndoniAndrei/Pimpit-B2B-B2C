@@ -8,6 +8,13 @@ const nextConfig = {
       { protocol: 'http',  hostname: '**' },
     ],
   },
+  experimental: {
+    // Include the fitment gallery data file in the serverless bundle so the
+    // /api/admin/fitment-import route can read it at runtime
+    outputFileTracingIncludes: {
+      '/api/admin/fitment-import': ['../data/fitmentgallery.csv.gz'],
+    },
+  },
 };
 
 module.exports = nextConfig;

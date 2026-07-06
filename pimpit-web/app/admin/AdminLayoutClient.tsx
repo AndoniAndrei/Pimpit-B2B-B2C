@@ -11,6 +11,7 @@ const NAV = [
   { href: '/admin/importuri',    label: 'Importuri' },
   { href: '/admin/furnizori',    label: 'Furnizori' },
   { href: '/admin/sincronizari', label: 'Sincronizări' },
+  { href: '/admin/vehicule',     label: 'Vehicule' },
 ];
 
 function SidebarLinks({ onNav }: { onNav?: () => void }) {
