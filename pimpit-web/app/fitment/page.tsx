@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createServerClient } from '@supabase/ssr';
 import VehicleSelector from './VehicleSelector';
+import { getModelAlias } from '@/lib/fitment/vehicleAliases';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ function makeClient() {
 }
 
 interface Fitment {
+  source_url: string | null;
   front_diameter: number | null;
   front_width: number | null;
   front_offset: number | null;
@@ -29,11 +31,24 @@ interface Fitment {
   front_tire_width: number | null;
   front_tire_aspect: number | null;
   front_tire_diameter: number | null;
+  rear_tire_width: number | null;
+  rear_tire_aspect: number | null;
+  rear_tire_diameter: number | null;
   front_tire_raw: string | null;
   rear_tire_raw: string | null;
   rubbing: string | null;
+  trimming: string | null;
+  spacers_front: string | null;
+  spacers_rear: string | null;
   stance: string | null;
-  vehicle: { year: number; trim: string } | null;
+  vehicle: { year: number; trim: string; model: { name: string } | null } | null;
+}
+
+interface WheelSetup {
+  diameter: number;
+  width: number;
+  offset: number | null;
+  count: number;
 }
 
 function topCounts<T>(items: T[], key: (t: T) => string | null, top = 5): [string, number][] {
@@ -46,6 +61,61 @@ function topCounts<T>(items: T[], key: (t: T) => string | null, top = 5): [strin
   return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, top);
 }
 
+function fmtNumber(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(n).replace(/\.0$/, '');
+}
+
+function wheelLabel(setup: Pick<WheelSetup, 'diameter' | 'width' | 'offset'>): string {
+  return `${fmtNumber(setup.diameter)}" x ${fmtNumber(setup.width)}J${
+    setup.offset != null ? ` ET${fmtNumber(setup.offset)}` : ''
+  }`;
+}
+
+function addWheelSetup(
+  counts: Map<string, WheelSetup>,
+  diameter: number | null,
+  width: number | null,
+  offset: number | null
+) {
+  if (!diameter || !width) return;
+  const key = `${diameter}|${width}|${offset ?? ''}`;
+  const current = counts.get(key);
+  if (current) current.count += 1;
+  else counts.set(key, { diameter, width, offset, count: 1 });
+}
+
+function topWheelSetups(items: Fitment[], top = 6): WheelSetup[] {
+  const counts = new Map<string, WheelSetup>();
+  for (const item of items) {
+    addWheelSetup(counts, item.front_diameter, item.front_width, item.front_offset);
+    if (item.is_staggered) addWheelSetup(counts, item.rear_diameter, item.rear_width, item.rear_offset);
+  }
+  return Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, top);
+}
+
+function catalogHrefForSetup(setup: WheelSetup, pcds: string[]): string {
+  const params = new URLSearchParams();
+  params.set('diameter', String(setup.diameter));
+  params.set('width', String(setup.width));
+  if (setup.offset != null) {
+    const center = Math.round(setup.offset);
+    for (let et = center - 5; et <= center + 5; et += 1) {
+      params.append('et', String(et));
+    }
+  }
+  for (const pcd of pcds) params.append('pcd', pcd);
+  return `/jante?${params.toString()}`;
+}
+
+function modificationSummary(fitment: Fitment): string {
+  const parts = [
+    fitment.trimming,
+    fitment.spacers_front ? `dist. fata ${fitment.spacers_front}` : null,
+    fitment.spacers_rear ? `dist. spate ${fitment.spacers_rear}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : '—';
+}
+
 export default async function FitmentPage({ searchParams }: {
   searchParams: { marca?: string; model?: string; an?: string; trim?: string };
 }) {
@@ -54,44 +124,78 @@ export default async function FitmentPage({ searchParams }: {
 
   let results: {
     makeName: string; modelName: string;
-    fitments: Fitment[]; totalVehicles: number;
+    fitments: Fitment[]; totalVehicles: number; pcds: string[];
   } | null = null;
   let notFound = false;
 
   if (marca && model) {
     const { data: makeRow } = await db.from('vehicle_makes').select('id, name').eq('slug', marca).maybeSingle();
-    const { data: modelRow } = makeRow
-      ? await db.from('vehicle_models').select('id, name').eq('make_id', makeRow.id).eq('slug', model).maybeSingle()
-      : { data: null };
+    const alias = marca && model ? getModelAlias(marca, model) : null;
 
-    if (makeRow && modelRow) {
-      let vq = db.from('vehicles').select('id').eq('model_id', modelRow.id);
-      if (an) vq = vq.eq('year', Number(an));
-      if (trim) vq = vq.eq('trim', trim);
-      const { data: vehicles } = await vq.limit(500);
-      const ids = (vehicles ?? []).map(v => v.id);
+    if (makeRow) {
+      let modelName = '';
+      let modelIds: number[] = [];
+      let pcds: string[] = [];
 
-      let fitments: Fitment[] = [];
-      if (ids.length) {
-        const { data } = await db
-          .from('vehicle_fitments')
-          .select('front_diameter, front_width, front_offset, rear_diameter, rear_width, rear_offset, is_staggered, front_tire_width, front_tire_aspect, front_tire_diameter, front_tire_raw, rear_tire_raw, rubbing, stance, vehicle:vehicles(year, trim)')
-          .in('vehicle_id', ids)
-          .limit(2000);
-        fitments = ((data ?? []) as unknown[] as (Omit<Fitment, 'vehicle'> & { vehicle: { year: number; trim: string }[] | { year: number; trim: string } | null })[])
-          .map(f => ({ ...f, vehicle: Array.isArray(f.vehicle) ? (f.vehicle[0] ?? null) : f.vehicle }));
+      if (alias) {
+        const { data: modelRows } = await db.from('vehicle_models')
+          .select('id')
+          .eq('make_id', makeRow.id)
+          .in('slug', alias.modelSlugs);
+        modelIds = (modelRows ?? []).map(row => row.id);
+        modelName = alias.name;
+        pcds = alias.pcds ?? [];
+      } else {
+        const { data: modelRow } = await db.from('vehicle_models')
+          .select('id, name')
+          .eq('make_id', makeRow.id)
+          .eq('slug', model)
+          .maybeSingle();
+        if (modelRow) {
+          modelIds = [modelRow.id];
+          modelName = modelRow.name;
+        }
       }
-      results = { makeName: makeRow.name, modelName: modelRow.name, fitments, totalVehicles: ids.length };
+
+      if (!modelIds.length) {
+        notFound = true;
+      } else {
+        let vq = db.from('vehicles').select('id').in('model_id', modelIds);
+        if (alias?.yearFrom) vq = vq.gte('year', alias.yearFrom);
+        if (alias?.yearTo) vq = vq.lte('year', alias.yearTo);
+        if (an) vq = vq.eq('year', Number(an));
+        if (trim) vq = vq.eq('trim', trim);
+        const { data: vehicles } = await vq.limit(500);
+        const ids = (vehicles ?? []).map(v => v.id);
+
+        let fitments: Fitment[] = [];
+        if (ids.length) {
+          const { data } = await db
+            .from('vehicle_fitments')
+            .select('source_url, front_diameter, front_width, front_offset, rear_diameter, rear_width, rear_offset, is_staggered, front_tire_width, front_tire_aspect, front_tire_diameter, rear_tire_width, rear_tire_aspect, rear_tire_diameter, front_tire_raw, rear_tire_raw, rubbing, trimming, spacers_front, spacers_rear, stance, vehicle:vehicles(year, trim, model:vehicle_models(name))')
+            .in('vehicle_id', ids)
+            .limit(2000);
+          fitments = ((data ?? []) as unknown[] as (Omit<Fitment, 'vehicle'> & {
+            vehicle: (
+              { year: number; trim: string; model: { name: string }[] | { name: string } | null }[] |
+              { year: number; trim: string; model: { name: string }[] | { name: string } | null } |
+              null
+            );
+          })[]).map(f => {
+            const vehicle = Array.isArray(f.vehicle) ? (f.vehicle[0] ?? null) : f.vehicle;
+            const modelRel = Array.isArray(vehicle?.model) ? (vehicle.model[0] ?? null) : (vehicle?.model ?? null);
+            return { ...f, vehicle: vehicle ? { ...vehicle, model: modelRel } : null };
+          });
+        }
+        results = { makeName: makeRow.name, modelName, fitments, totalVehicles: ids.length, pcds };
+      }
     } else {
       notFound = true;
     }
   }
 
   const f = results?.fitments ?? [];
-  const wheelSetups = topCounts(f, x =>
-    x.front_diameter && x.front_width
-      ? `${x.front_diameter}" × ${x.front_width}J${x.front_offset != null ? ` ET${x.front_offset}` : ''}`
-      : null, 6);
+  const wheelSetups = topWheelSetups(f, 6);
   const diameters = topCounts(f, x => (x.front_diameter ? String(x.front_diameter) : null), 4);
   const tires = topCounts(f, x =>
     x.front_tire_width && x.front_tire_aspect && x.front_tire_diameter
@@ -145,10 +249,10 @@ export default async function FitmentPage({ searchParams }: {
                 <div className="rounded-lg border p-4">
                   <h3 className="font-semibold mb-3">Dimensiuni de jante populare</h3>
                   <ul className="space-y-2 text-sm">
-                    {wheelSetups.map(([setup, n]) => (
-                      <li key={setup} className="flex justify-between">
-                        <span className="font-mono">{setup}</span>
-                        <span className="text-muted-foreground">{n} mașini</span>
+                    {wheelSetups.map(setup => (
+                      <li key={`${setup.diameter}-${setup.width}-${setup.offset ?? 'x'}`} className="flex justify-between gap-3">
+                        <span className="font-mono">{wheelLabel(setup)}</span>
+                        <span className="text-muted-foreground">{setup.count} mașini</span>
                       </li>
                     ))}
                   </ul>
@@ -167,17 +271,27 @@ export default async function FitmentPage({ searchParams }: {
               </div>
 
               {/* CTA spre catalog */}
-              {diameters.length > 0 && (
+              {wheelSetups.length > 0 && (
                 <div className="rounded-xl border bg-primary/5 p-6 space-y-3">
                   <h3 className="font-semibold">Găsește jante pentru mașina ta</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Linkurile de mai jos filtrează catalogul după diametru, lățime și ET apropiat de setup-urile reale
+                    {results.pcds.length ? ` și după PCD ${results.pcds.join(', ')}` : ''}.
+                  </p>
                   <div className="flex flex-wrap gap-3">
-                    {diameters.map(([d]) => (
-                      <Link key={d} href={`/jante?diameter=${d}`}
+                    {wheelSetups.map(setup => (
+                      <Link key={`${setup.diameter}-${setup.width}-${setup.offset ?? 'x'}`}
+                        href={catalogHrefForSetup(setup, results.pcds)}
                         className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium">
-                        Jante pe {d}" →
+                        Jante {wheelLabel(setup)} →
                       </Link>
                     ))}
                   </div>
+                  {!results.pcds.length && (
+                    <p className="text-xs text-muted-foreground">
+                      Nu avem încă PCD OEM pentru această selecție, deci verifică prinderea înainte de comandă.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -190,32 +304,60 @@ export default async function FitmentPage({ searchParams }: {
                       <th className="p-3">Jante față</th>
                       <th className="p-3">Jante spate</th>
                       <th className="p-3">Anvelope</th>
+                      <th className="p-3">Modificări</th>
                       <th className="p-3">Stance</th>
                       <th className="p-3">Frecări</th>
+                      <th className="p-3">Sursă</th>
                     </tr>
                   </thead>
                   <tbody>
                     {f.slice(0, 30).map((x, i) => (
                       <tr key={i} className="border-b last:border-0">
                         <td className="p-3 whitespace-nowrap">
-                          {x.vehicle ? `${x.vehicle.year} ${x.vehicle.trim}` : '—'}
+                          {x.vehicle
+                            ? `${x.vehicle.year} ${x.vehicle.model?.name ? `${x.vehicle.model.name} ` : ''}${x.vehicle.trim}`
+                            : '—'}
                         </td>
                         <td className="p-3 font-mono whitespace-nowrap">
-                          {x.front_diameter ? `${x.front_diameter}"×${x.front_width}J ET${x.front_offset ?? '—'}` : '—'}
+                          {x.front_diameter && x.front_width ? wheelLabel({
+                            diameter: x.front_diameter,
+                            width: x.front_width,
+                            offset: x.front_offset,
+                          }) : '—'}
                         </td>
                         <td className="p-3 font-mono whitespace-nowrap">
-                          {x.is_staggered && x.rear_diameter
-                            ? `${x.rear_diameter}"×${x.rear_width}J ET${x.rear_offset ?? '—'}`
+                          {x.is_staggered && x.rear_diameter && x.rear_width
+                            ? wheelLabel({
+                                diameter: x.rear_diameter,
+                                width: x.rear_width,
+                                offset: x.rear_offset,
+                              })
                             : '='}
                         </td>
-                        <td className="p-3 text-xs max-w-56 truncate" title={x.front_tire_raw ?? ''}>
-                          {x.front_tire_raw ?? '—'}
+                        <td className="p-3 text-xs max-w-72">
+                          <div className="truncate" title={x.front_tire_raw ?? ''}>
+                            față: {x.front_tire_raw ?? '—'}
+                          </div>
+                          {x.rear_tire_raw && x.rear_tire_raw !== x.front_tire_raw && (
+                            <div className="truncate" title={x.rear_tire_raw}>
+                              spate: {x.rear_tire_raw}
+                            </div>
+                          )}
                         </td>
+                        <td className="p-3 text-xs max-w-52">{modificationSummary(x)}</td>
                         <td className="p-3">{x.stance ?? '—'}</td>
                         <td className="p-3">
                           {(x.rubbing ?? '').toLowerCase().includes('no rubbing')
                             ? <span className="text-green-600">fără ✓</span>
                             : <span className="text-amber-600">{x.rubbing ?? '?'}</span>}
+                        </td>
+                        <td className="p-3">
+                          {x.source_url ? (
+                            <Link href={x.source_url} target="_blank" rel="noreferrer"
+                              className="text-primary hover:underline">
+                              vezi
+                            </Link>
+                          ) : '—'}
                         </td>
                       </tr>
                     ))}

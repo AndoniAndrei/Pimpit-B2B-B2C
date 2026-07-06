@@ -8,6 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { getAliasesForMake, getModelAlias } from '@/lib/fitment/vehicleAliases';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -51,26 +52,60 @@ export async function GET(req: NextRequest) {
       const { data, error } = await db.from('vehicle_models')
         .select('slug, name').eq('make_id', makeRow.id).order('name');
       if (error) throw error;
-      return NextResponse.json({ models: data }, { headers: cacheHeaders });
+      const aliasOptions = getAliasesForMake(make).map(alias => ({
+        slug: alias.slug,
+        name: alias.name,
+      }));
+      const models = [...(data ?? []), ...aliasOptions]
+        .sort((a, b) => a.name.localeCompare(b.name, 'ro'));
+      return NextResponse.json({ models }, { headers: cacheHeaders });
     }
 
-    const { data: modelRow } = await db.from('vehicle_models')
-      .select('id').eq('make_id', makeRow.id).eq('slug', model).maybeSingle();
-    if (!modelRow) return NextResponse.json({ error: 'Model necunoscut' }, { status: 404 });
+    const alias = getModelAlias(make, model);
+    let modelIds: number[] = [];
+    if (alias) {
+      const { data, error } = await db.from('vehicle_models')
+        .select('id')
+        .eq('make_id', makeRow.id)
+        .in('slug', alias.modelSlugs);
+      if (error) throw error;
+      modelIds = (data ?? []).map(row => row.id);
+    } else {
+      const { data: modelRow } = await db.from('vehicle_models')
+        .select('id').eq('make_id', makeRow.id).eq('slug', model).maybeSingle();
+      if (modelRow) modelIds = [modelRow.id];
+    }
+    if (!modelIds.length) return NextResponse.json({ error: 'Model necunoscut' }, { status: 404 });
 
     if (!year) {
-      const { data, error } = await db.from('vehicles')
-        .select('year').eq('model_id', modelRow.id).order('year', { ascending: false });
+      let q = db.from('vehicles')
+        .select('year')
+        .in('model_id', modelIds)
+        .order('year', { ascending: false });
+      if (alias?.yearFrom) q = q.gte('year', alias.yearFrom);
+      if (alias?.yearTo) q = q.lte('year', alias.yearTo);
+      const { data, error } = await q;
       if (error) throw error;
       const years = Array.from(new Set((data ?? []).map(v => v.year)));
       return NextResponse.json({ years }, { headers: cacheHeaders });
     }
 
-    const { data, error } = await db.from('vehicles')
-      .select('id, trim').eq('model_id', modelRow.id).eq('year', Number(year)).order('trim');
+    let q = db.from('vehicles')
+      .select('id, trim')
+      .in('model_id', modelIds)
+      .eq('year', Number(year))
+      .order('trim');
+    if (alias?.yearFrom) q = q.gte('year', alias.yearFrom);
+    if (alias?.yearTo) q = q.lte('year', alias.yearTo);
+    const { data, error } = await q;
     if (error) throw error;
+    const trimsByName = new Map<string, { id: number; trim: string }>();
+    for (const v of data ?? []) {
+      const label = v.trim || 'Standard';
+      if (!trimsByName.has(label)) trimsByName.set(label, { id: v.id, trim: label });
+    }
     return NextResponse.json(
-      { trims: (data ?? []).map(v => ({ id: v.id, trim: v.trim || 'Standard' })) },
+      { trims: Array.from(trimsByName.values()) },
       { headers: cacheHeaders }
     );
   } catch (e) {
