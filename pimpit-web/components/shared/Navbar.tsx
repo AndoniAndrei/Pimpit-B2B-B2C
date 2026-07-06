@@ -18,6 +18,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-6">
           <Link href="/jante" className="text-sm font-medium hover:text-primary transition-colors">Jante</Link>
           <Link href="/accesorii" className="text-sm font-medium hover:text-primary transition-colors">Accesorii</Link>
+          <Link href="/fitment" className="text-sm font-medium hover:text-primary transition-colors">Ce se potrivește?</Link>
         </div>
 
         <div className="flex items-center gap-1">
@@ -46,6 +47,9 @@ export default function Navbar() {
           </Link>
           <Link href="/accesorii" className="py-2.5 px-2 text-sm font-medium hover:text-primary transition-colors rounded-lg hover:bg-muted" onClick={() => setMenuOpen(false)}>
             Accesorii
+          </Link>
+          <Link href="/fitment" className="py-2.5 px-2 text-sm font-medium hover:text-primary transition-colors rounded-lg hover:bg-muted" onClick={() => setMenuOpen(false)}>
+            Ce se potrivește?
           </Link>
         </div>
       )}
