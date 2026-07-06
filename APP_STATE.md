@@ -4,7 +4,7 @@
 > **Regulă:** La orice modificare funcțională (feature nou, schimbare de schemă, API nou, bugfix semnificativ) **acest fișier trebuie actualizat** în același commit. Secțiunile "Known Issues" și "Roadmap" se ajustează pe măsură ce lucrurile avansează.
 > **Citire:** Claude Code trebuie să consulte acest fișier la începutul fiecărei sesiuni, ÎNAINTE de a citi cod.
 
-Ultima actualizare: 2026-04-17
+Ultima actualizare: 2026-07-06
 
 ---
 
@@ -55,7 +55,11 @@ Pimpit este o platformă **B2B + B2C de e-commerce pentru jante (wheels) și acc
 │   ├── middleware.ts          # Refresh sesiune auth
 │   └── package.json
 ├── supabase/
-│   └── migrations/            # 8 migrații SQL (001...008)
+│   └── migrations/            # migrații SQL (001...016; 012+ = Catalog V2)
+├── docs/
+│   └── CATALOG_V2_PLAN.md     # Plan tehnic catalog universal + import engine v2
+├── data/
+│   └── fitmentgallery.csv.gz  # 57k fitmenturi (export Fitment Industries)
 └── .env.example
 ```
 
@@ -270,7 +274,23 @@ Policy: public READ, service_role WRITE.
 009_et_range_pcd_choice.sql            → products.et_min/et_max + cart/order_items.selected_et/selected_pcd/needs_help_*
 010_cascading_filter_et_range.sql      → RPC fațetat acceptă p_ets[] + intersecție interval ET
 011_cleanup_corrupt_et.sql             → NULL pe et_offset/et_min/et_max când abs > 999 (artefacte vechi)
+012_catalog_v2_foundation.sql          → V2: categories, brands, manufacturers, catalog_products, product_variants, supplier_offers, media_assets + winner recompute + seed categorii
+013_category_attributes.sql            → V2: category_attribute_definitions, product_variant_attributes (EAV tipizat + sync attrs JSONB), category_filter_definitions + seed atribute/fațete per categorie
+014_import_engine_v2.sql               → V2: supplier_feeds, import_jobs, import_raw_rows, import_errors, import_staged_variants, supplier_mapping_profiles, supplier_field_mappings, supplier_transform_rules, currency_rates, bucket feed-snapshots, claim_next_import_job()
+015_vehicle_fitment.sql                → V2: vehicle_makes/models/generations/vehicles, vehicle_fitments, variant_vehicle_compatibility, fitment_rules, fitment_warnings
+016_legacy_backfill.sql                → V2: backfill_catalog_from_legacy() — copiere opt-in products v1 → model v2 (re-rulabilă, non-destructivă)
 ```
+
+### 7.9 Catalog V2 (în construcție — vezi `docs/CATALOG_V2_PLAN.md`)
+
+Migrațiile 012–016 pun fundația **catalogului universal** (jante, anvelope, pachete, suspensii, iluminat, frâne, TPMS, distanțiere, prezoane, body kit, accesorii), modelat după CARiD/Fitment Industries:
+
+- **Model canonic:** `catalog_products` (familie) → `product_variants` (SKU, dedup `(brand_id, part_number)`, atribute tipizate EAV + mirror `attrs` JSONB GIN) → `supplier_offers` (toate ofertele, nu doar câștigătorul; `recompute_variant_pricing()` denormalizează câștigătorul pe variantă cu același tie-break ca v1).
+- **Atribute per categorie:** definiții tipizate + fațete configurabile (`category_filter_definitions`) — înlocuiesc pe termen lung RPC-urile hardcodate jante/accesorii.
+- **Import v2:** flux fetch → snapshot (Storage `feed-snapshots`) → parse (`import_raw_rows`) → map (profiluri versionate) → validate → stage (diff create/update/unchanged/deactivate) → publish tranzacțional → rollback per job. Worker separat planificat (coadă = `import_jobs` + `claim_next_import_job()` cu SKIP LOCKED).
+- **Fitment:** ierarhie vehicule + `vehicle_fitments` — se populează din exportul Fitment Industries (57.162 rânduri, `data/fitmentgallery.csv.gz`) cu `npm run fitment:import -- --apply` (dry-run implicit; 55.978 valide, 1.184 rânduri goale respinse).
+- **Compatibilitate:** `SELECT backfill_catalog_from_legacy();` copiază catalogul v1 în v2 (1 produs = 1 familie + 1 variantă). Nimic din v1 nu e atins; vechiul pipeline de import rămâne funcțional până la faza de cutover.
+- **Teste:** `npm test` (în `pimpit-web/`) — 23 teste pe parsare/mapare/pricing/dedup/normalizatoare (`tests/*.test.ts`, runner `tsx --test`).
 
 ---
 
@@ -425,6 +445,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-18 — **ET range — Etapa B (catalog filter)**: migrație `010_cascading_filter_et_range.sql` — `get_cascading_filter_options` primește `p_ets numeric[]`, întoarce faceta `ets` enumerată cu `generate_series(floor(et_min)::int, ceil(et_max)::int)`, aplică filtrare prin intersecție interval (`EXISTS (SELECT 1 FROM unnest(p_ets) e WHERE e BETWEEN et_min AND et_max)`) în toate CTE-urile. `/jante/page.tsx` acceptă `?et=35&et=40` și filtrează produsele prin OR de range-intersection. `/api/products` idem (acceptă `et_offset` single sau `et` multi). `ProductCard` + product detail afișează `ET20-50` când `et_min ≠ et_max` (eliminat complet artefactul `ET99999`). Etapa C (UI picker în product detail) și D (cart + orders) rămân. — catalog filter ET range
 - 2026-04-18 — **ET range — Etapa C + D (picker + cart/orders)**: componentă client nouă `app/jante/[slug]/ProductActions.tsx` — dropdown ET când `et_min ≠ et_max` (cu opțiune „Am nevoie de ajutor cu alegerea ET") și dropdown prindere când produsul are ≥ 3 PCD-uri normalizate (cu „Am nevoie de ajutor pentru alegerea prinderii"); selector cantitate; buton adaugă în coș cu fetch către `/api/cart`. Pagina produs calculează integer ET list (`Array.from` pe `[ceil(et_min), floor(et_max)]`) și lista PCD din `splitAndNormalizePcds`. `/api/cart` POST validat cu Zod (`selected_et`, `selected_pcd`, `needs_help_et`, `needs_help_pcd`) și upsert-ul persistă coloanele. `/api/orders` POST snapshot-ează selecțiile în `order_items`. `/cos/page.tsx` arată selecțiile și mesajul de asistență sub fiecare produs. `CartItem` extins în `lib/types.ts`. — fluxul complet ET/PCD customer-facing
 - 2026-04-19 — **Cleanup ET corupt**: migrație `011_cleanup_corrupt_et.sql` setează `et_offset / et_offset_rear / et_min / et_max = NULL` pe rândurile cu `abs(value) > 999` (artefacte vechi tip `99999` rămase de la parser-ul care trata listele cu virgulă ca separator de mii). Real ET e în -60…+150, deci pragul 999 e safe. Idempotentă. — curățare date legacy
+- 2026-07-06 — **CATALOG V2 — Faza 1 (fundație schemă)**: plan tehnic complet în `docs/CATALOG_V2_PLAN.md` (audit v1, arhitectură în 4 straturi, strategie de migrare expand→backfill→cutover→contract, motor import cu staging/dry-run/rollback, worker cu coadă în DB, flux admin). Migrații noi 012–016 (catalog universal: categories/brands/catalog_products/product_variants/supplier_offers/media_assets; sistem atribute per categorie cu seed pentru 11 categorii; motor import v2: feeds/jobs/raw_rows/errors/staging/mapping profiles/transform rules/currency_rates; strat fitment vehicule; backfill opt-in din v1). Cod nou: `lib/catalog/types.ts`, `lib/import/normalizers.ts`, `scripts/import-fitment-gallery.ts` (57k fitmenturi FI, dry-run validat: 55.978 valide), `tests/` (23 teste, `npm test`, tsx). Totul aditiv — v1 (storefront + import vechi) neatins. — secțiunea 7.9
 
 ---
 
