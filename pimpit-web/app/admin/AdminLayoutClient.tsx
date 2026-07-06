@@ -9,6 +9,7 @@ const NAV = [
   { href: '/admin',              label: 'Dashboard' },
   { href: '/admin/produse',      label: 'Produse' },
   { href: '/admin/importuri',    label: 'Importuri' },
+  { href: '/admin/import-v2',    label: 'Import V2' },
   { href: '/admin/furnizori',    label: 'Furnizori' },
   { href: '/admin/sincronizari', label: 'Sincronizări' },
   { href: '/admin/vehicule',     label: 'Vehicule' },

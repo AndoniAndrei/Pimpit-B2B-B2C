@@ -279,10 +279,15 @@ Import-level — per-job rollback via staged `previous` payloads.
 - **Phase 3 — Worker**
   - Standalone Node worker with `SKIP LOCKED` claim loop; deploy; move big feeds.
   - Scheduling via trigger/cron inserting queued jobs.
-- **Phase 4 — Admin UI v2**
-  - Onboarding wizard, mapping editor with live preview, dry-run report,
-    error browser, staging review + publish/rollback buttons.
-  - Migrate all 7 suppliers to mapping profiles; freeze old wizard.
+- **Phase 4 — Admin UI v2** ✅ code-complete (built before Phase 3 — UI unblocks
+  the non-technical owner; worker remains transparent to swap in later)
+  - `/admin/import-v2` hub, 5-step profile wizard with client-side live preview
+    (runs the real `mapRow()` on sample rows), job report page with staging diff,
+    grouped errors, and Publish/Cancel/Rollback/"run real import" actions.
+  - `sample` route: multipart upload → reusable snapshot, or authenticated feed
+    fetch; format + CSV delimiter auto-detection (also as pipeline fallback).
+  - Remaining: migrate the 7 v1 suppliers to mapping profiles (operational task,
+    doable entirely from the UI); freeze old wizard at cutover.
 - **Phase 5 — Storefront v2**
   - Vehicle selector (YMM) + garage; generic category pages with
     `category_filter_definitions`-driven facets; variant-selector product pages;

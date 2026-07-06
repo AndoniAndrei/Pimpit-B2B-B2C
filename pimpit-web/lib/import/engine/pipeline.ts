@@ -10,6 +10,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createHash } from 'node:crypto';
 import { parseFeedBuffer } from '../../feedParser';
+import { detectFormatFromName, detectCsvDelimiter } from '../detect';
 import {
   mapRow, dedupeMappedRows,
   type MappingContext, type MappedRow, type FieldMappingLite,
@@ -204,8 +205,9 @@ export async function runImportJob(jobId: string): Promise<PipelineResult> {
     const { data: feed } = j.feed_id
       ? await db.from('supplier_feeds').select('format, csv_delimiter').eq('id', j.feed_id).maybeSingle()
       : { data: null };
-    if (feed?.format) format = feed.format as string;
-    if (feed?.csv_delimiter) delimiter = feed.csv_delimiter as string;
+    format = (feed?.format as string) ?? detectFormatFromName(j.snapshot_path);
+    delimiter = (feed?.csv_delimiter as string)
+      ?? (format === 'csv' ? detectCsvDelimiter(buffer.subarray(0, 64 * 1024).toString('utf-8')) : delimiter);
   } else {
     if (!j.feed_id) await fail(db, jobId, 'fetch', 'Jobul nu are nici feed_id, nici snapshot_path');
     const { data: feed } = await db
@@ -242,6 +244,13 @@ export async function runImportJob(jobId: string): Promise<PipelineResult> {
   let rows: Record<string, unknown>[];
   try {
     rows = parseFeedBuffer(buffer!, format as never, delimiter);
+    // Delimitator greșit → o singură coloană; reîncearcă cu cel detectat
+    if (format === 'csv' && rows.length > 0 && Object.keys(rows[0]).length <= 1) {
+      const detected = detectCsvDelimiter(buffer!.subarray(0, 64 * 1024).toString('utf-8'));
+      if (detected !== delimiter) {
+        rows = parseFeedBuffer(buffer!, 'csv', detected);
+      }
+    }
   } catch (e) {
     return fail(db, jobId, 'parse', `Parsarea a eșuat: ${e instanceof Error ? e.message : e}`);
   }
