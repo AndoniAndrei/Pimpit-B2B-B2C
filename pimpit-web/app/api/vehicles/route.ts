@@ -9,26 +9,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function makeClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('Lipsesc NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
+  }
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url,
+    key,
     { cookies: { getAll: () => [], setAll: () => {} } }
   );
 }
 
-const cacheHeaders = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' };
+const cacheHeaders = { 'Cache-Control': 'no-store' };
 
 export async function GET(req: NextRequest) {
-  const db = makeClient();
   const sp = req.nextUrl.searchParams;
   const make = sp.get('make');
   const model = sp.get('model');
   const year = sp.get('year');
 
   try {
+    const db = makeClient();
+
     if (!make) {
       const { data, error } = await db.from('vehicle_makes')
         .select('slug, name').eq('is_active', true).order('name');
