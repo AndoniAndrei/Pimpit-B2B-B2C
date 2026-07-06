@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /cos
+Disallow: /checkout
+Disallow: /cont
+Disallow: /auth/
+Disallow: /setup
+
+Sitemap: https://pimpit.ro/api/sitemap.xml
