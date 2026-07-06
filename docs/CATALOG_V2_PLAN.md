@@ -268,9 +268,14 @@ Import-level — per-job rollback via staged `previous` payloads.
   - `scripts/import-fitment-gallery.ts` — 57k FI gallery rows → vehicle tables
     (dry-run + apply modes). Data committed as `data/fitmentgallery.csv.gz`.
   - Test suite (`npm test`) for parsers, normalizers, pricing, dedup.
-- **Phase 2 — Import pipeline core (in-process behind job table)**
-  - Fetch/snapshot/parse/map/validate/stage/publish/rollback as `lib/import/engine/*`.
-  - Mapping profile CRUD API. First supplier (smallest feed) mapped end-to-end.
+- **Phase 2 — Import pipeline core (in-process behind job table)** ✅ code-complete
+  - `lib/import/engine/{transforms,mapper,pipeline}.ts`; migration 017
+    (`publish_import_job` / `rollback_import_job`, atomic, single transaction).
+  - Admin API `/api/admin/import-v2/{profiles,feeds,jobs}` (dry_run/staged/direct,
+    error+staging report, publish/rollback actions).
+  - Remaining: apply migration 017; map first supplier end-to-end against live data.
+  - Known rollback limitation: only offers are restored from `previous`;
+    attribute/media changes are not reverted.
 - **Phase 3 — Worker**
   - Standalone Node worker with `SKIP LOCKED` claim loop; deploy; move big feeds.
   - Scheduling via trigger/cron inserting queued jobs.
