@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## READ FIRST — Source of Truth
 
-**Before writing or modifying any code, read [`APP_STATE.md`](./APP_STATE.md).** It is the single source of truth for:
+**Before writing or modifying any code, read [`APP_STATE.md`](./APP_STATE.md).** For anything touching the Catalog V2 redesign (universal categories, product_variants, supplier_offers, import engine v2, vehicle fitment — migrations 012+), also read [`docs/CATALOG_V2_PLAN.md`](./docs/CATALOG_V2_PLAN.md). APP_STATE.md is the single source of truth for:
 - All storefront pages, API routes and admin features
 - ETL pipeline (single in-process path: `pimpit-web/lib/importRunner.ts`)
 - Complete database schema, enums, RPCs, RLS policies, migrations

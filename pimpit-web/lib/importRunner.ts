@@ -38,7 +38,7 @@ function generateSlug(brand: string, name: string, partNumber: string): string {
     .slice(0, 380);
 }
 
-function deduplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
+export function deduplicateProducts(products: ParsedProduct[]): ParsedProduct[] {
   const map = new Map<string, ParsedProduct>();
   for (const p of products) {
     const key = `${p.partNumber.toLowerCase()}|${p.brand.toLowerCase()}`;
