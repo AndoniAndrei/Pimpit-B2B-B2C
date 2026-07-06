@@ -55,6 +55,7 @@ const CORE_FIELDS = [
 
 const OFFER_FIELDS = [
   { code: 'raw_price',      label: 'Preț furnizor', hint: 'Prețul brut din feed' },
+  { code: 'price_b2b',      label: 'Preț B2B (opțional)', hint: 'Coloană cu preț dedicat clienților B2B' },
   { code: 'stock',          label: 'Stoc',          hint: '' },
   { code: 'stock_incoming', label: 'Stoc pe drum',  hint: '' },
   { code: 'supplier_sku',   label: 'SKU furnizor',  hint: '' },

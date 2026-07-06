@@ -368,6 +368,7 @@ export async function runImportJob(jobId: string): Promise<PipelineResult> {
       raw_price: r.offer.rawPrice,
       raw_currency: r.offer.currency,
       price: r.offer.price,
+      price_b2b: r.offer.priceB2b,
       stock: r.offer.stock,
       stock_incoming: r.offer.stockIncoming,
       supplier_sku: r.offer.supplierSku,

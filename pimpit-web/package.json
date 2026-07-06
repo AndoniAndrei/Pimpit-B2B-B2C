@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test tests/*.test.ts",
-    "fitment:import": "tsx scripts/import-fitment-gallery.ts"
+    "fitment:import": "tsx scripts/import-fitment-gallery.ts",
+    "worker": "tsx scripts/import-worker.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.1",

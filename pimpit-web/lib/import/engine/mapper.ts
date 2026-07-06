@@ -84,6 +84,7 @@ export interface MappedRow {
     rawPrice: number | null;
     currency: string;
     price: number | null;
+    priceB2b: number | null;
     stock: number;
     stockIncoming: number;
     supplierSku: string | null;
@@ -184,7 +185,7 @@ export function mapRow(row: Record<string, unknown>, ctx: MappingContext): Mappe
     },
     attributes: {},
     offer: {
-      rawPrice: null, currency: 'RON', price: null,
+      rawPrice: null, currency: 'RON', price: null, priceB2b: null,
       stock: 0, stockIncoming: 0, supplierSku: null, leadTimeDays: null,
     },
     media: [],
@@ -251,6 +252,7 @@ export function mapRow(row: Record<string, unknown>, ctx: MappingContext): Mappe
       case 'offer':
         switch (m.target_code) {
           case 'raw_price':      out.offer.rawPrice = parseSmartNumber(value); break;
+          case 'price_b2b':      out.offer.priceB2b = parseSmartNumber(value); break;
           case 'currency':       out.offer.currency = value.toUpperCase(); break;
           case 'stock':          out.offer.stock = Math.max(0, Math.round(parseSmartNumber(value) ?? 0)); break;
           case 'stock_incoming': out.offer.stockIncoming = Math.max(0, Math.round(parseSmartNumber(value) ?? 0)); break;
@@ -309,6 +311,7 @@ export function mapRow(row: Record<string, unknown>, ctx: MappingContext): Mappe
         try {
           const result = evaluateFormula(cfg.expression, row as Record<string, string>);
           if (cfg.target === 'offer:raw_price') out.offer.rawPrice = result;
+          else if (cfg.target === 'offer:price_b2b') out.offer.priceB2b = result;
           else out.offer.price = result; // implicit: offer:price (RON final)
         } catch (e) {
           out.errors.push({
