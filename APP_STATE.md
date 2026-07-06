@@ -279,6 +279,7 @@ Policy: public READ, service_role WRITE.
 014_import_engine_v2.sql               → V2: supplier_feeds, import_jobs, import_raw_rows, import_errors, import_staged_variants, supplier_mapping_profiles, supplier_field_mappings, supplier_transform_rules, currency_rates, bucket feed-snapshots, claim_next_import_job()
 015_vehicle_fitment.sql                → V2: vehicle_makes/models/generations/vehicles, vehicle_fitments, variant_vehicle_compatibility, fitment_rules, fitment_warnings
 016_legacy_backfill.sql                → V2: backfill_catalog_from_legacy() — copiere opt-in products v1 → model v2 (re-rulabilă, non-destructivă)
+017_publish_rollback.sql               → V2: publish_import_job() + rollback_import_job() — aplicare/anulare atomică a staging-ului
 ```
 
 ### 7.9 Catalog V2 (în construcție — vezi `docs/CATALOG_V2_PLAN.md`)
@@ -290,7 +291,20 @@ Migrațiile 012–016 pun fundația **catalogului universal** (jante, anvelope, 
 - **Import v2:** flux fetch → snapshot (Storage `feed-snapshots`) → parse (`import_raw_rows`) → map (profiluri versionate) → validate → stage (diff create/update/unchanged/deactivate) → publish tranzacțional → rollback per job. Worker separat planificat (coadă = `import_jobs` + `claim_next_import_job()` cu SKIP LOCKED).
 - **Fitment:** ierarhie vehicule + `vehicle_fitments` — se populează din exportul Fitment Industries (57.162 rânduri, `data/fitmentgallery.csv.gz`) cu `npm run fitment:import -- --apply` (dry-run implicit; 55.978 valide, 1.184 rânduri goale respinse).
 - **Compatibilitate:** `SELECT backfill_catalog_from_legacy();` copiază catalogul v1 în v2 (1 produs = 1 familie + 1 variantă). Nimic din v1 nu e atins; vechiul pipeline de import rămâne funcțional până la faza de cutover.
-- **Teste:** `npm test` (în `pimpit-web/`) — 23 teste pe parsare/mapare/pricing/dedup/normalizatoare (`tests/*.test.ts`, runner `tsx --test`).
+- **Teste:** `npm test` (în `pimpit-web/`) — 34 teste pe parsare/mapare/pricing/dedup/normalizatoare + motorul de mapare v2 (`tests/*.test.ts`, runner `tsx --test`).
+
+**Motorul de import v2 (Faza 2 — implementat, în așteptarea migrației 017 + primul profil):**
+
+- `lib/import/engine/transforms.ts` — lanț de transformări pe valori (trim, case, number_locale, unit_convert, regex_extract, value_remap) + filtre pe rând.
+- `lib/import/engine/mapper.ts` — `mapRow()`: rând brut → payload canonic (familie/variantă/atribute/ofertă/media) cu reguli de profil (brand_normalize cu aliasuri, currency_convert prin `currency_rates`, formula de preț cu prioritate) + validare tipizată vs `category_attribute_definitions` (required, min/max, enum, moștenire de la categoria părinte). `dedupeMappedRows()` = semantica v1.
+- `lib/import/engine/pipeline.ts` — `runImportJob(jobId)`: fetch (sau snapshot urcat) → snapshot în Storage + sha256 → parse → raw rows → map+validate (erori în `import_errors`, cap 5000) → diff vs catalog live (create/update/unchanged/deactivate, cu `previous` pentru rollback) → staging; `mode=direct` publică imediat prin RPC. Rulează in-process (maxDuration 300s); Faza 3 îl mută în worker fără schimbarea contractului.
+- **API admin v2** (toate cu `checkAdmin()` din `lib/adminAuth.ts`):
+  - `GET/POST /api/admin/import-v2/profiles`, `GET/PATCH/DELETE /api/admin/import-v2/profiles/[id]` — profiluri de mapare cu field_mappings + transform_rules (PATCH cu înlocuire completă incrementează `version`).
+  - `GET/POST /api/admin/import-v2/feeds` — feed-uri multiple per furnizor.
+  - `GET/POST /api/admin/import-v2/jobs` — istoric + creare/rulare job (mode: dry_run/staged/direct).
+  - `GET /api/admin/import-v2/jobs/[id]` — job + sumar erori grupate + mostre + sumar staging (raportul de dry-run).
+  - `POST /api/admin/import-v2/jobs/[id]` — `{action: publish|rollback|cancel}` (publish/rollback = RPC-urile atomice din 017).
+- **Limitare documentată rollback:** restaurează doar ofertele (`previous`); modificările de atribute/media nu sunt reversate.
 
 ---
 
@@ -445,6 +459,7 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 - 2026-04-18 — **ET range — Etapa B (catalog filter)**: migrație `010_cascading_filter_et_range.sql` — `get_cascading_filter_options` primește `p_ets numeric[]`, întoarce faceta `ets` enumerată cu `generate_series(floor(et_min)::int, ceil(et_max)::int)`, aplică filtrare prin intersecție interval (`EXISTS (SELECT 1 FROM unnest(p_ets) e WHERE e BETWEEN et_min AND et_max)`) în toate CTE-urile. `/jante/page.tsx` acceptă `?et=35&et=40` și filtrează produsele prin OR de range-intersection. `/api/products` idem (acceptă `et_offset` single sau `et` multi). `ProductCard` + product detail afișează `ET20-50` când `et_min ≠ et_max` (eliminat complet artefactul `ET99999`). Etapa C (UI picker în product detail) și D (cart + orders) rămân. — catalog filter ET range
 - 2026-04-18 — **ET range — Etapa C + D (picker + cart/orders)**: componentă client nouă `app/jante/[slug]/ProductActions.tsx` — dropdown ET când `et_min ≠ et_max` (cu opțiune „Am nevoie de ajutor cu alegerea ET") și dropdown prindere când produsul are ≥ 3 PCD-uri normalizate (cu „Am nevoie de ajutor pentru alegerea prinderii"); selector cantitate; buton adaugă în coș cu fetch către `/api/cart`. Pagina produs calculează integer ET list (`Array.from` pe `[ceil(et_min), floor(et_max)]`) și lista PCD din `splitAndNormalizePcds`. `/api/cart` POST validat cu Zod (`selected_et`, `selected_pcd`, `needs_help_et`, `needs_help_pcd`) și upsert-ul persistă coloanele. `/api/orders` POST snapshot-ează selecțiile în `order_items`. `/cos/page.tsx` arată selecțiile și mesajul de asistență sub fiecare produs. `CartItem` extins în `lib/types.ts`. — fluxul complet ET/PCD customer-facing
 - 2026-04-19 — **Cleanup ET corupt**: migrație `011_cleanup_corrupt_et.sql` setează `et_offset / et_offset_rear / et_min / et_max = NULL` pe rândurile cu `abs(value) > 999` (artefacte vechi tip `99999` rămase de la parser-ul care trata listele cu virgulă ca separator de mii). Real ET e în -60…+150, deci pragul 999 e safe. Idempotentă. — curățare date legacy
+- 2026-07-06 — **CATALOG V2 — Faza 2 (motor import v2)**: migrație `017_publish_rollback.sql` (`publish_import_job()` / `rollback_import_job()` — aplicare/anulare atomică a staging-ului, într-o singură tranzacție, oferte ștampilate cu `import_job_id`). Motor de mapare pur (`lib/import/engine/`: transforms, mapper cu validare tipizată + moștenire atribute, pipeline fetch→snapshot→parse→map→stage). API admin `/api/admin/import-v2/*` (profiles CRUD versionat, feeds, jobs cu dry_run/staged/direct, raport erori+staging, publish/rollback). Helper partajat `lib/adminAuth.ts`. +11 teste (34 total). — secțiunea 7.9
 - 2026-07-06 — **CATALOG V2 — Faza 1 (fundație schemă)**: plan tehnic complet în `docs/CATALOG_V2_PLAN.md` (audit v1, arhitectură în 4 straturi, strategie de migrare expand→backfill→cutover→contract, motor import cu staging/dry-run/rollback, worker cu coadă în DB, flux admin). Migrații noi 012–016 (catalog universal: categories/brands/catalog_products/product_variants/supplier_offers/media_assets; sistem atribute per categorie cu seed pentru 11 categorii; motor import v2: feeds/jobs/raw_rows/errors/staging/mapping profiles/transform rules/currency_rates; strat fitment vehicule; backfill opt-in din v1). Cod nou: `lib/catalog/types.ts`, `lib/import/normalizers.ts`, `scripts/import-fitment-gallery.ts` (57k fitmenturi FI, dry-run validat: 55.978 valide), `tests/` (23 teste, `npm test`, tsx). Totul aditiv — v1 (storefront + import vechi) neatins. — secțiunea 7.9
 
 ---
