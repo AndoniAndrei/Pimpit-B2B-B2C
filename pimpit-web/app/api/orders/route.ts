@@ -42,8 +42,10 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   const sessionId = cookies().get('session_id')?.value
 
-  // 1. Get Cart
-  let cartQuery = supabase.from('cart').select('*, product:products(*)')
+  // 1. Get Cart (produse v1 + variante v2)
+  let cartQuery = supabase.from('cart').select(
+    '*, product:products(*), variant:product_variants(id, part_number, name_suffix, price, price_b2b, stock, brand:brands(name), family:catalog_products(name, slug))'
+  )
   if (user) {
     cartQuery = cartQuery.eq('user_id', user.id)
   } else if (sessionId) {
@@ -69,6 +71,42 @@ export async function POST(request: Request) {
   const orderItems = []
 
   for (const item of cartItems) {
+    // Rând v2 (variantă din catalogul universal)
+    if (item.variant) {
+      const v = item.variant
+      const brand = Array.isArray(v.brand) ? v.brand[0] : v.brand
+      const family = Array.isArray(v.family) ? v.family[0] : v.family
+      const vName = [family?.name, v.name_suffix].filter(Boolean).join(' ') || v.part_number
+
+      if ((v.stock ?? 0) < item.quantity) {
+        return NextResponse.json({ error: `Not enough stock for ${vName}` }, { status: 400 })
+      }
+      const unitPrice = (isB2B && v.price_b2b != null) ? v.price_b2b : (v.price ?? 0)
+      if (unitPrice <= 0) {
+        return NextResponse.json({ error: `Preț indisponibil pentru ${vName}` }, { status: 400 })
+      }
+      const totalPrice = unitPrice * item.quantity
+      subtotal += totalPrice
+
+      orderItems.push({
+        product_id: null,
+        variant_id: v.id,
+        product_name: vName,
+        product_brand: brand?.name ?? '',
+        product_pn: v.part_number,
+        product_image: null,
+        unit_price: unitPrice,
+        quantity: item.quantity,
+        total_price: totalPrice,
+        selected_et: null,
+        selected_pcd: null,
+        needs_help_et: false,
+        needs_help_pcd: false,
+      })
+      continue
+    }
+
+    // Rând v1 (comportament neschimbat)
     const p = item.product
     if (p.stock < item.quantity) {
       return NextResponse.json({ error: `Not enough stock for ${p.name}` }, { status: 400 })
