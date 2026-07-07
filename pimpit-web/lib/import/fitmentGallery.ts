@@ -1,5 +1,5 @@
 /**
- * Importul galeriei de fitmenturi (export Fitment Industries) în
+ * Importul galeriei de fitmenturi (export extern) în
  * vehicle_makes / vehicle_models / vehicles / vehicle_fitments.
  *
  * Logica partajată între:

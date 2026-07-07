@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Selector cascadă Marcă → Model → An → Trim (stil Fitment Industries).
+ * Selector cascadă Marcă → Model → An → Trim.
  * La „Vezi ce se potrivește" navighează la /fitment cu parametrii aleși.
  */
 import { useEffect, useState } from 'react';
@@ -22,9 +22,13 @@ export default function VehicleSelector({ initial }: {
   const [model, setModel] = useState(initial?.model ?? '');
   const [year, setYear] = useState(initial?.an ?? '');
   const [trim, setTrim] = useState(initial?.trim ?? '');
+  const [makesLoaded, setMakesLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/vehicles').then(r => r.json()).then(d => setMakes(d.makes ?? []));
+    fetch('/api/vehicles', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => { setMakes(d.makes ?? []); setMakesLoaded(true); })
+      .catch(() => setMakesLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -54,6 +58,16 @@ export default function VehicleSelector({ initial }: {
   }
 
   const sel = 'border rounded-md px-3 py-2.5 text-sm w-full bg-background disabled:opacity-50';
+
+  if (makesLoaded && makes.length === 0) {
+    return (
+      <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-900 text-sm p-4">
+        Baza de date de vehicule nu este încă populată. Un administrator trebuie să ruleze
+        importul de fitmenturi din <b>Admin → Vehicule → „Importă fitmenturile"</b>, apoi
+        selectorul se activează automat.
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

@@ -174,7 +174,7 @@ export interface Vehicle {
 export type FitmentPosition = 'front' | 'rear' | 'both';
 export type FitmentSource = 'fitment_gallery' | 'supplier' | 'rule' | 'manual' | 'customer';
 
-/** Setup real (galeria Fitment Industries sau surse viitoare). */
+/** Setup real (galeria de fitmenturi importată sau surse viitoare). */
 export interface VehicleFitment {
   id: number;
   vehicle_id: number;

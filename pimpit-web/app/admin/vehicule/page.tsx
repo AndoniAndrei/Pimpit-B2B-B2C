@@ -33,7 +33,7 @@ export default async function VehiculePage() {
       <div>
         <h1 className="text-2xl font-bold">Vehicule & Fitment</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Baza de date de vehicule și setup-uri reale (galeria Fitment Industries).
+          Baza de date de vehicule și setup-uri reale din comunitate.
           Alimentează selectorul An/Marcă/Model și recomandările „ce se potrivește pe mașina mea”.
         </p>
       </div>

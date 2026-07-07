@@ -19,7 +19,14 @@ function makeClient() {
   );
 }
 
-const cacheHeaders = { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' };
+// Cache DOAR răspunsurile cu date — o listă goală (înainte de importul
+// fitmenturilor) nu trebuie să rămână blocată în CDN o oră.
+function withCache(payload: Record<string, unknown[]>): NextResponse {
+  const hasData = Object.values(payload).some(arr => arr.length > 0);
+  return NextResponse.json(payload, hasData
+    ? { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } }
+    : { headers: { 'Cache-Control': 'no-store' } });
+}
 
 export async function GET(req: NextRequest) {
   const db = makeClient();
@@ -33,7 +40,7 @@ export async function GET(req: NextRequest) {
       const { data, error } = await db.from('vehicle_makes')
         .select('slug, name').eq('is_active', true).order('name');
       if (error) throw error;
-      return NextResponse.json({ makes: data }, { headers: cacheHeaders });
+      return withCache({ makes: data ?? [] });
     }
 
     const { data: makeRow } = await db.from('vehicle_makes').select('id').eq('slug', make).maybeSingle();
@@ -43,7 +50,7 @@ export async function GET(req: NextRequest) {
       const { data, error } = await db.from('vehicle_models')
         .select('slug, name').eq('make_id', makeRow.id).order('name');
       if (error) throw error;
-      return NextResponse.json({ models: data }, { headers: cacheHeaders });
+      return withCache({ models: data ?? [] });
     }
 
     const { data: modelRow } = await db.from('vehicle_models')
@@ -55,16 +62,13 @@ export async function GET(req: NextRequest) {
         .select('year').eq('model_id', modelRow.id).order('year', { ascending: false });
       if (error) throw error;
       const years = Array.from(new Set((data ?? []).map(v => v.year)));
-      return NextResponse.json({ years }, { headers: cacheHeaders });
+      return withCache({ years });
     }
 
     const { data, error } = await db.from('vehicles')
       .select('id, trim').eq('model_id', modelRow.id).eq('year', Number(year)).order('trim');
     if (error) throw error;
-    return NextResponse.json(
-      { trims: (data ?? []).map(v => ({ id: v.id, trim: v.trim || 'Standard' })) },
-      { headers: cacheHeaders }
-    );
+    return withCache({ trims: (data ?? []).map(v => ({ id: v.id, trim: v.trim || 'Standard' })) });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
