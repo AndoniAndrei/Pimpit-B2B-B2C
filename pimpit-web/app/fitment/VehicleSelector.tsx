@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Selector cascadă Marcă → Model → An → Trim (stil Fitment Industries).
+ * Selector cascadă Marcă → An fabricație → Model → Versiune.
  * La „Vezi ce se potrivește" navighează la /fitment cu parametrii aleși.
  */
 import { useEffect, useState } from 'react';
@@ -32,17 +32,18 @@ export default function VehicleSelector({ initial }: {
 }) {
   const router = useRouter();
   const [makes, setMakes] = useState<Opt[]>([]);
-  const [models, setModels] = useState<Opt[]>([]);
   const [years, setYears] = useState<number[]>([]);
+  const [models, setModels] = useState<Opt[]>([]);
   const [trims, setTrims] = useState<Opt[]>([]);
   const [makesLoaded, setMakesLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [make, setMake] = useState(initial?.marca ?? '');
-  const [model, setModel] = useState(initial?.model ?? '');
   const [year, setYear] = useState(initial?.an ?? '');
+  const [model, setModel] = useState(initial?.model ?? '');
   const [trim, setTrim] = useState(initial?.trim ?? '');
 
+  // 1) Mărci
   useEffect(() => {
     let cancelled = false;
     setError(null);
@@ -59,29 +60,13 @@ export default function VehicleSelector({ initial }: {
     return () => { cancelled = true; };
   }, []);
 
+  // 2) Anii de fabricație ai mărcii
   useEffect(() => {
-    setModels([]); setYears([]); setTrims([]);
+    setYears([]); setModels([]); setTrims([]);
     if (!make) return;
     let cancelled = false;
     setError(null);
     const params = new URLSearchParams({ make });
-    fetchVehicles(`/api/vehicles?${params.toString()}`)
-      .then(d => { if (!cancelled) setModels(d.models ?? []); })
-      .catch(e => {
-        if (!cancelled) {
-          setModels([]);
-          setError(`Nu am putut incarca modelele: ${errorMessage(e)}`);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [make]);
-
-  useEffect(() => {
-    setYears([]); setTrims([]);
-    if (!make || !model) return;
-    let cancelled = false;
-    setError(null);
-    const params = new URLSearchParams({ make, model });
     fetchVehicles(`/api/vehicles?${params.toString()}`)
       .then(d => { if (!cancelled) setYears(d.years ?? []); })
       .catch(e => {
@@ -91,14 +76,33 @@ export default function VehicleSelector({ initial }: {
         }
       });
     return () => { cancelled = true; };
-  }, [make, model]);
+  }, [make]);
 
+  // 3) Modelele disponibile în anul ales
   useEffect(() => {
-    setTrims([]);
-    if (!make || !model || !year) return;
+    setModels([]); setTrims([]);
+    if (!make || !year) return;
     let cancelled = false;
     setError(null);
-    const params = new URLSearchParams({ make, model, year });
+    const params = new URLSearchParams({ make, year });
+    fetchVehicles(`/api/vehicles?${params.toString()}`)
+      .then(d => { if (!cancelled) setModels(d.models ?? []); })
+      .catch(e => {
+        if (!cancelled) {
+          setModels([]);
+          setError(`Nu am putut incarca modelele: ${errorMessage(e)}`);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [make, year]);
+
+  // 4) Versiunile pentru model + an
+  useEffect(() => {
+    setTrims([]);
+    if (!make || !year || !model) return;
+    let cancelled = false;
+    setError(null);
+    const params = new URLSearchParams({ make, year, model });
     fetchVehicles(`/api/vehicles?${params.toString()}`)
       .then(d => { if (!cancelled) setTrims(d.trims ?? []); })
       .catch(e => {
@@ -108,7 +112,7 @@ export default function VehicleSelector({ initial }: {
         }
       });
     return () => { cancelled = true; };
-  }, [make, model, year]);
+  }, [make, year, model]);
 
   function go() {
     if (!make || !model) return;
@@ -123,25 +127,26 @@ export default function VehicleSelector({ initial }: {
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-      <select className={sel} value={make} onChange={e => { setMake(e.target.value); setModel(''); setYear(''); setTrim(''); }}>
+      <select className={sel} value={make}
+        onChange={e => { setMake(e.target.value); setYear(''); setModel(''); setTrim(''); }}>
         <option value="">Marca</option>
         {makes.map(m => <option key={m.slug} value={m.slug}>{m.name}</option>)}
       </select>
-      <select className={sel} value={model} disabled={!make}
-        onChange={e => { setModel(e.target.value); setYear(''); setTrim(''); }}>
+      <select className={sel} value={year} disabled={!make}
+        onChange={e => { setYear(e.target.value); setModel(''); setTrim(''); }}>
+        <option value="">Anul fabricației</option>
+        {years.map(y => <option key={y} value={y}>{y}</option>)}
+      </select>
+      <select className={sel} value={model} disabled={!year}
+        onChange={e => { setModel(e.target.value); setTrim(''); }}>
         <option value="">Modelul</option>
         {models.map(m => <option key={m.slug} value={m.slug}>{m.name}</option>)}
       </select>
-      <select className={sel} value={year} disabled={!model}
-        onChange={e => { setYear(e.target.value); setTrim(''); }}>
-        <option value="">Anul (opțional)</option>
-        {years.map(y => <option key={y} value={y}>{y}</option>)}
-      </select>
-      <select className={sel} value={trim} disabled={!year} onChange={e => setTrim(e.target.value)}>
+      <select className={sel} value={trim} disabled={!model} onChange={e => setTrim(e.target.value)}>
         <option value="">Versiunea (opțional)</option>
         {trims.map(t => <option key={t.trim} value={t.trim}>{t.trim}</option>)}
       </select>
-      <button onClick={go} disabled={!make || !model}
+      <button onClick={go} disabled={!make || !year || !model}
         className="rounded-md bg-primary text-primary-foreground text-sm font-medium px-4 py-2.5 disabled:opacity-50">
         Vezi ce se potrivește
       </button>

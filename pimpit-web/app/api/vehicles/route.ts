@@ -1,10 +1,10 @@
 /**
- * API public pentru selectorul de vehicul (cascade Marcă → Model → An → Trim).
- * GET /api/vehicles                          → mărci
- * GET /api/vehicles?make=bmw                 → modele
- * GET /api/vehicles?make=bmw&model=seria-3   → ani
- * GET /api/vehicles?make=bmw&model=seria-3&year=2020 → trims
- * Cache 1h (datele se schimbă doar la re-import).
+ * API public pentru selectorul de vehicul.
+ * Cascadă: Marcă → An fabricație → Model → Versiune.
+ *   GET /api/vehicles                                → mărci
+ *   GET /api/vehicles?make=bmw                       → ani (toți anii mărcii)
+ *   GET /api/vehicles?make=bmw&year=2008             → modele disponibile în acel an
+ *   GET /api/vehicles?make=bmw&year=2008&model=e60   → versiuni (trims)
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
@@ -42,59 +42,77 @@ export async function GET(req: NextRequest) {
       const { data, error } = await db.from('vehicle_makes')
         .select('slug, name').eq('is_active', true).order('name');
       if (error) throw error;
-      return NextResponse.json({ makes: data }, { headers: cacheHeaders });
+      return NextResponse.json({ makes: data ?? [] }, { headers: cacheHeaders });
     }
 
     const { data: makeRow } = await db.from('vehicle_makes').select('id').eq('slug', make).maybeSingle();
     if (!makeRow) return NextResponse.json({ error: 'Marcă necunoscută' }, { status: 404 });
 
-    if (!model) {
-      const { data, error } = await db.from('vehicle_models')
-        .select('slug, name').eq('make_id', makeRow.id).order('name');
-      if (error) throw error;
-      const aliasOptions = getAliasesForMake(make).map(alias => ({
-        slug: alias.slug,
-        name: alias.name,
-      }));
-      const models = [...(data ?? []), ...aliasOptions]
-        .sort((a, b) => a.name.localeCompare(b.name, 'ro'));
-      return NextResponse.json({ models }, { headers: cacheHeaders });
-    }
+    // Toate modelele mărcii — folosite de toate ramurile de mai jos
+    const { data: allModels, error: mErr } = await db.from('vehicle_models')
+      .select('id, slug, name').eq('make_id', makeRow.id);
+    if (mErr) throw mErr;
+    const allModelIds = (allModels ?? []).map(m => m.id);
+    if (!allModelIds.length) return NextResponse.json({ years: [], models: [] }, { headers: cacheHeaders });
 
-    const alias = getModelAlias(make, model);
-    let modelIds: number[] = [];
-    if (alias) {
-      const { data, error } = await db.from('vehicle_models')
-        .select('id')
-        .eq('make_id', makeRow.id)
-        .in('slug', alias.modelSlugs);
-      if (error) throw error;
-      modelIds = (data ?? []).map(row => row.id);
-    } else {
-      const { data: modelRow } = await db.from('vehicle_models')
-        .select('id').eq('make_id', makeRow.id).eq('slug', model).maybeSingle();
-      if (modelRow) modelIds = [modelRow.id];
-    }
-    if (!modelIds.length) return NextResponse.json({ error: 'Model necunoscut' }, { status: 404 });
-
-    if (!year) {
-      let q = db.from('vehicles')
+    // ── Pasul 2: anii de fabricație ai mărcii ────────────────────────────────
+    if (!year && !model) {
+      const { data, error } = await db.from('vehicles')
         .select('year')
-        .in('model_id', modelIds)
+        .in('model_id', allModelIds)
         .order('year', { ascending: false });
-      if (alias?.yearFrom) q = q.gte('year', alias.yearFrom);
-      if (alias?.yearTo) q = q.lte('year', alias.yearTo);
-      const { data, error } = await q;
       if (error) throw error;
       const years = Array.from(new Set((data ?? []).map(v => v.year)));
       return NextResponse.json({ years }, { headers: cacheHeaders });
     }
 
+    // ── Pasul 3: modelele disponibile în anul ales ───────────────────────────
+    if (year && !model) {
+      const y = Number(year);
+      const { data, error } = await db.from('vehicles')
+        .select('model_id')
+        .in('model_id', allModelIds)
+        .eq('year', y);
+      if (error) throw error;
+      const presentIds = new Set((data ?? []).map(v => v.model_id));
+      const presentModels = (allModels ?? []).filter(m => presentIds.has(m.id));
+      const presentSlugs = new Set(presentModels.map(m => m.slug));
+
+      // Aliasuri de șasiu (ex. BMW E60): incluse doar dacă anul e în interval
+      // și cel puțin un model comercial acoperit există în anul respectiv
+      const aliasOptions = getAliasesForMake(make)
+        .filter(a =>
+          (a.yearFrom === undefined || y >= a.yearFrom) &&
+          (a.yearTo === undefined || y <= a.yearTo) &&
+          a.modelSlugs.some(slug => presentSlugs.has(slug))
+        )
+        .map(a => ({ slug: a.slug, name: a.name }));
+
+      const models = [
+        ...presentModels.map(m => ({ slug: m.slug, name: m.name })),
+        ...aliasOptions,
+      ].sort((a, b) => a.name.localeCompare(b.name, 'ro'));
+      return NextResponse.json({ models }, { headers: cacheHeaders });
+    }
+
+    // ── Pasul 4: versiunile (trims) pentru model (+ an, dacă e ales) ─────────
+    const alias = getModelAlias(make, model!);
+    let modelIds: number[] = [];
+    if (alias) {
+      modelIds = (allModels ?? [])
+        .filter(m => alias.modelSlugs.includes(m.slug))
+        .map(m => m.id);
+    } else {
+      const row = (allModels ?? []).find(m => m.slug === model);
+      if (row) modelIds = [row.id];
+    }
+    if (!modelIds.length) return NextResponse.json({ error: 'Model necunoscut' }, { status: 404 });
+
     let q = db.from('vehicles')
       .select('id, trim')
       .in('model_id', modelIds)
-      .eq('year', Number(year))
       .order('trim');
+    if (year) q = q.eq('year', Number(year));
     if (alias?.yearFrom) q = q.gte('year', alias.yearFrom);
     if (alias?.yearTo) q = q.lte('year', alias.yearTo);
     const { data, error } = await q;
