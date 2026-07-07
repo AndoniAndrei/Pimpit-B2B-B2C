@@ -462,6 +462,8 @@ Ordinea recomandată (de rezolvat în sesiuni viitoare):
 > Fiecare sesiune care modifică aplicația **trebuie să adauge o linie aici**. Formatul:
 > `YYYY-MM-DD — [scurt] — [fișiere / zone afectate] — [link commit/PR dacă există]`
 
+- 2026-07-06 — **FIX fitment selector gol după import**: `/api/vehicles` nu mai cache-uiește răspunsul public timp de 1h și întoarce eroare JSON clară când lipsesc env-urile Supabase; `VehicleSelector` folosește fetch `no-store`, encodează parametrii cascadei și afișează eroare/DB goală în UI în loc să lase dropdown-ul gol. — `app/api/vehicles/route.ts`, `app/fitment/VehicleSelector.tsx`
+- 2026-07-06 — **Fitment mai util pentru șasiuri + catalog**: adăugat alias `BMW 5 Series E60/E61 (2004-2010)` peste modelele comerciale FI (`525i`, `530i`, `535i`, `M5` etc.), `/api/vehicles` returnează ani/trim-uri agregate pentru alias, iar `/fitment` agregă rezultatele, afișează mai multe detalii (sursă, anvelope față/spate, trimming, distanțiere) și trimite spre `/jante` cu filtre reale `diameter + width + et + pcd` când PCD-ul e cunoscut. — `lib/fitment/vehicleAliases.ts`, `app/api/vehicles/route.ts`, `app/fitment/page.tsx`
 - 2026-04-17 — Initial APP_STATE created (audit complet, baseline) — `APP_STATE.md`, `CLAUDE.md`
 - 2026-04-17 — **FIXED C1**: adăugat `checkAdmin()` pe GET/PATCH/DELETE în `app/api/admin/produse/[id]/route.ts`; și pe GET în `app/api/admin/produse/route.ts` (același pattern de info disclosure pe lista admin). — securitate API admin
 - 2026-04-17 — **FIXED C5**: helper `sanitizeSearchInput` (lib/utils.ts) aplicat în 4 puncte de search (`/api/products`, `/api/admin/produse`, `/jante`, `/accesorii`); strip `% _ , ( ) : " \` și cap 100 char pentru a preveni PostgREST filter injection. — securitate query
