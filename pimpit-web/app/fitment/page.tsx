@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createServerClient } from '@supabase/ssr';
 import VehicleSelector from './VehicleSelector';
 import { getModelAlias } from '@/lib/fitment/vehicleAliases';
+import { resolveGeneration } from '@/lib/fitment/vehicleGenerations';
 
 export const dynamic = 'force-dynamic';
 
@@ -203,6 +204,20 @@ export default async function FitmentPage({ searchParams }: {
   const noRubbing = f.filter(x => (x.rubbing ?? '').toLowerCase().includes('no rubbing')).length;
   const staggered = f.filter(x => x.is_staggered).length;
 
+  // Generația (șasiul) rezolvată din (marcă, model, an) — protecție împotriva
+  // amestecului de generații cu prinderi diferite sub același nume comercial
+  const generation = marca && model && an
+    ? resolveGeneration(marca, model, Number(an))
+    : null;
+  const effectivePcds = results?.pcds.length
+    ? results.pcds
+    : (generation?.pcd ? [generation.pcd] : []);
+  // Interval de ani acoperit de rezultate — pentru avertismentul „fără an"
+  const resultYears = f.map(x => x.vehicle?.year).filter((y): y is number => !!y);
+  const yearSpread = resultYears.length
+    ? Math.max(...resultYears) - Math.min(...resultYears)
+    : 0;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       <div className="space-y-2">
@@ -223,11 +238,37 @@ export default async function FitmentPage({ searchParams }: {
 
       {results && (
         <div className="space-y-8">
-          <h2 className="text-xl font-bold">
-            {results.makeName} {results.modelName}
-            {an ? ` (${an})` : ''}{trim ? ` ${trim}` : ''} —{' '}
-            {f.length.toLocaleString('ro-RO')} setup-uri reale
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold">
+              {results.makeName} {results.modelName}
+              {an ? ` (${an})` : ''}{trim ? ` ${trim}` : ''} —{' '}
+              {f.length.toLocaleString('ro-RO')} setup-uri reale
+            </h2>
+
+            {/* Badge de generație — cheia împotriva confuziei între șasiuri */}
+            {generation && (
+              <div className="inline-flex flex-wrap items-center gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-sm">
+                <span className="font-semibold">
+                  Generația: {generation.code} ({generation.yearFrom}–{generation.yearTo ?? 'prezent'})
+                </span>
+                {generation.pcd && <span className="font-mono">· Prindere {generation.pcd.replace('X', 'x')}</span>}
+                {generation.centerBore && <span className="font-mono">· Alezaj {generation.centerBore}mm</span>}
+              </div>
+            )}
+            {generation?.note && (
+              <p className="text-sm text-amber-700">⚠ {generation.note}</p>
+            )}
+
+            {/* Fără an ales → rezultatele pot amesteca generații */}
+            {!an && f.length > 0 && yearSpread >= 8 && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-sm p-3">
+                <b>Atenție:</b> rezultatele acoperă anii {Math.min(...resultYears)}–{Math.max(...resultYears)},
+                adică mai multe generații care pot avea prinderi (PCD) diferite.
+                Alege <b>anul fabricației</b> din selector ca să vezi doar setup-urile
+                generației mașinii tale.
+              </div>
+            )}
+          </div>
 
           {f.length === 0 ? (
             <p className="text-muted-foreground">
@@ -275,18 +316,18 @@ export default async function FitmentPage({ searchParams }: {
                   <h3 className="font-semibold">Găsește jante pentru mașina ta</h3>
                   <p className="text-sm text-muted-foreground">
                     Linkurile de mai jos filtrează catalogul după diametru, lățime și ET apropiat de setup-urile reale
-                    {results.pcds.length ? ` și după PCD ${results.pcds.join(', ')}` : ''}.
+                    {effectivePcds.length ? ` și după PCD ${effectivePcds.join(', ')}` : ''}.
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {wheelSetups.map(setup => (
                       <Link key={`${setup.diameter}-${setup.width}-${setup.offset ?? 'x'}`}
-                        href={catalogHrefForSetup(setup, results.pcds)}
+                        href={catalogHrefForSetup(setup, effectivePcds)}
                         className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium">
                         Jante {wheelLabel(setup)} →
                       </Link>
                     ))}
                   </div>
-                  {!results.pcds.length && (
+                  {!effectivePcds.length && (
                     <p className="text-xs text-muted-foreground">
                       Nu avem încă PCD OEM pentru această selecție, deci verifică prinderea înainte de comandă.
                     </p>
