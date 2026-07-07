@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createServerClient } from '@supabase/ssr';
 import VehicleSelector from './VehicleSelector';
 import { getModelAlias } from '@/lib/fitment/vehicleAliases';
+import { resolveModelParam } from '@/lib/fitment/modelFamilies';
 import { resolveGeneration } from '@/lib/fitment/vehicleGenerations';
 
 export const dynamic = 'force-dynamic';
@@ -123,7 +124,7 @@ export default async function FitmentPage({ searchParams }: {
   const { marca, model, an, trim } = searchParams;
 
   let results: {
-    makeName: string; modelName: string;
+    makeName: string; modelName: string; probeSlug: string;
     fitments: Fitment[]; totalVehicles: number; pcds: string[];
   } | null = null;
   let notFound = false;
@@ -134,10 +135,23 @@ export default async function FitmentPage({ searchParams }: {
 
     if (makeRow) {
       let modelName = '';
+      let probeSlug = model;
       let modelIds: number[] = [];
       let pcds: string[] = [];
 
-      if (alias) {
+      if (model.startsWith('fam-')) {
+        // Familie (ex. fam-seria-5): acoperă toate modelele comerciale ale seriei
+        const { data: allModels } = await db.from('vehicle_models')
+          .select('id, slug, name')
+          .eq('make_id', makeRow.id);
+        const fam = resolveModelParam(marca, model, (allModels ?? []) as { slug: string; name: string }[]);
+        if (fam) {
+          const famSlugs = new Set(fam.slugs);
+          modelIds = (allModels ?? []).filter(m => famSlugs.has(m.slug)).map(m => m.id);
+          modelName = fam.label;
+          probeSlug = fam.probeSlug;
+        }
+      } else if (alias) {
         const { data: modelRows } = await db.from('vehicle_models')
           .select('id')
           .eq('make_id', makeRow.id)
@@ -187,7 +201,7 @@ export default async function FitmentPage({ searchParams }: {
             return { ...f, vehicle: vehicle ? { ...vehicle, model: modelRel } : null };
           });
         }
-        results = { makeName: makeRow.name, modelName, fitments, totalVehicles: ids.length, pcds };
+        results = { makeName: makeRow.name, modelName, probeSlug, fitments, totalVehicles: ids.length, pcds };
       }
     } else {
       notFound = true;
@@ -206,8 +220,8 @@ export default async function FitmentPage({ searchParams }: {
 
   // Generația (șasiul) rezolvată din (marcă, model, an) — protecție împotriva
   // amestecului de generații cu prinderi diferite sub același nume comercial
-  const generation = marca && model && an
-    ? resolveGeneration(marca, model, Number(an))
+  const generation = marca && results && an
+    ? resolveGeneration(marca, results.probeSlug, Number(an))
     : null;
   const effectivePcds = results?.pcds.length
     ? results.pcds

@@ -8,7 +8,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { getAliasesForMake, getModelAlias } from '@/lib/fitment/vehicleAliases';
+import { getModelAlias } from '@/lib/fitment/vehicleAliases';
+import { groupModels, resolveModelParam } from '@/lib/fitment/modelFamilies';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -75,30 +76,25 @@ export async function GET(req: NextRequest) {
         .eq('year', y);
       if (error) throw error;
       const presentIds = new Set((data ?? []).map(v => v.model_id));
-      const presentModels = (allModels ?? []).filter(m => presentIds.has(m.id));
-      const presentSlugs = new Set(presentModels.map(m => m.slug));
+      const presentModels = (allModels ?? [])
+        .filter(m => presentIds.has(m.id))
+        .map(m => ({ slug: m.slug as string, name: m.name as string }));
 
-      // Aliasuri de șasiu (ex. BMW E60): incluse doar dacă anul e în interval
-      // și cel puțin un model comercial acoperit există în anul respectiv
-      const aliasOptions = getAliasesForMake(make)
-        .filter(a =>
-          (a.yearFrom === undefined || y >= a.yearFrom) &&
-          (a.yearTo === undefined || y <= a.yearTo) &&
-          a.modelSlugs.some(slug => presentSlugs.has(slug))
-        )
-        .map(a => ({ slug: a.slug, name: a.name }));
-
-      const models = [
-        ...presentModels.map(m => ({ slug: m.slug, name: m.name })),
-        ...aliasOptions,
-      ].sort((a, b) => a.name.localeCompare(b.name, 'ro'));
-      return NextResponse.json({ models }, { headers: cacheHeaders });
+      // Grupare pe familii (Seria 5, Clasa C…) cu generația/șasiul rezolvat pe an
+      const groups = groupModels(make, presentModels, y);
+      return NextResponse.json({ groups }, { headers: cacheHeaders });
     }
 
     // ── Pasul 4: versiunile (trims) pentru model (+ an, dacă e ales) ─────────
     const alias = getModelAlias(make, model!);
     let modelIds: number[] = [];
-    if (alias) {
+    if (model!.startsWith('fam-')) {
+      const fam = resolveModelParam(make, model!, (allModels ?? []) as { slug: string; name: string }[]);
+      if (fam) {
+        const famSlugs = new Set(fam.slugs);
+        modelIds = (allModels ?? []).filter(m => famSlugs.has(m.slug as string)).map(m => m.id);
+      }
+    } else if (alias) {
       modelIds = (allModels ?? [])
         .filter(m => alias.modelSlugs.includes(m.slug))
         .map(m => m.id);
