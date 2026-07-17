@@ -19,6 +19,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This keeps `APP_STATE.md` accurate enough that future sessions can answer "what's built / where do we continue" without re-reading the codebase.
 
+### Live WordPress site (pimpit.ro) — separate track
+
+For ANY work on the **live pimpit.ro WordPress/WooCommerce site** (product-page redesign,
+theme/plugin tweaks, SEO — NOT the `pimpit-web` Next.js code), the source of truth is
+[`PIMPIT_WORK_STATE.md`](./PIMPIT_WORK_STATE.md). By default:
+- **Read `PIMPIT_WORK_STATE.md` first** before touching the live site — it holds the access
+  method, deploy mechanism, what's already built, and the permanent constraints.
+- **Update `PIMPIT_WORK_STATE.md`** at the end of any session that changed the live site.
+
 ## Commands
 
 ```bash
